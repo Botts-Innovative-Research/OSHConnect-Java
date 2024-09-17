@@ -3,6 +3,7 @@ package org.sensorhub.oshconnect;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.sensorhub.oshconnect.datamodels.Node;
+import org.sensorhub.oshconnect.time.TimeController;
 
 import java.util.*;
 
@@ -14,6 +15,7 @@ public class OSHConnect {
     @Getter
     private final String name;
     private final Set<Node> nodes = new HashSet<>();
+    private final TimeController timeController = new TimeController();
 
     public OSHConnect() {
         this("OSH Connect");
@@ -25,7 +27,7 @@ public class OSHConnect {
      * @param node The node to add.
      */
     public void addNode(Node node) {
-        addNodes(List.of(node));
+        nodes.add(node);
     }
 
     /**

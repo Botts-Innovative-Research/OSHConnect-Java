@@ -5,6 +5,7 @@ import org.sensorhub.oshconnect.constants.Service;
 import org.sensorhub.oshconnect.net.APIRequest;
 import org.sensorhub.oshconnect.net.APIResponse;
 import org.sensorhub.oshconnect.net.HttpRequestMethod;
+import org.sensorhub.oshconnect.time.TimePeriod;
 
 import java.util.Base64;
 import java.util.List;
@@ -23,8 +24,16 @@ public class Node {
      * A unique id of the server, for configuration management.
      */
     private final UUID uniqueId;
-
+    /**
+     * The authorization token for the server.
+     */
     private final String authorizationToken;
+
+    /**
+     * The time range for the OSHConnect instance.
+     * This is used to bookend the playback of the datastreams.
+     */
+    private TimePeriod timePeriod;
 
     public Node(String sensorHubRoot) {
         this(sensorHubRoot, null, null);
@@ -56,7 +65,7 @@ public class Node {
     /**
      * Discover systems from the nodes that have been added to the OSHConnect instance.
      *
-     * @return a list of systems
+     * @return a list of systems.
      */
     public List<System> discoverSystems() {
         APIRequest request = new APIRequest();
@@ -75,7 +84,7 @@ public class Node {
     /**
      * Discover datastreams from the nodes that have been added to the OSHConnect instance.
      *
-     * @return a list of datastreams
+     * @return a list of datastreams.
      */
     public List<Datastream> discoverDatastreams() {
         var systems = discoverSystems();
