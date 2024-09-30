@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.sensorhub.oshconnect.TestConstants.*;
 
 class OSHConnectTest {
     private OSHConnect oshConnect;
@@ -19,8 +20,8 @@ class OSHConnectTest {
     void setUp() {
         oshConnect = new OSHConnect();
         node1Id = UUID.randomUUID();
-        node1 = new Node("http://localhost:8181/sensorhub", "admin", "admin", node1Id);
-        node2 = new Node("http://localhost:8181/sensorhub");
+        node1 = new Node(SENSOR_HUB_ROOT, IS_SECURE, USERNAME, PASSWORD, node1Id);
+        node2 = new Node(SENSOR_HUB_ROOT, IS_SECURE);
     }
 
     @Test

@@ -35,12 +35,14 @@ public class System {
     public List<Datastream> discoverDataStreams() {
         APIRequest request = new APIRequest();
         request.setRequestMethod(HttpRequestMethod.GET);
-        request.setUrl(getDataStreamsEndpoint());
+        request.setUrl(parentNode.getHTTPPrefix() + getDataStreamsEndpoint());
         if (parentNode.getAuthorizationToken() != null) {
             request.setAuthorizationToken(parentNode.getAuthorizationToken());
         }
 
         APIResponse<Datastream> response = request.execute(Datastream.class);
-        return response.getItems();
+        List<Datastream> datastreams = response.getItems();
+        datastreams.forEach(datastream -> datastream.setParentSystem(this));
+        return datastreams;
     }
 }

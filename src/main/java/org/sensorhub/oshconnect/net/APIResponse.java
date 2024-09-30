@@ -18,14 +18,12 @@ public class APIResponse<T> {
         return new Gson().fromJson(json, TypeToken.getParameterized(APIResponse.class, clazz).getType());
     }
 
-    public String toJson() {
+    public String toJSON() {
         return new Gson().toJson(this);
     }
 
     @Override
     public String toString() {
-        return "APIResponse{" +
-                "items=" + items +
-                '}';
+        return toJSON();
     }
 }

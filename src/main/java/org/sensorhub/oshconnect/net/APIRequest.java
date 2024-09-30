@@ -12,23 +12,14 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.Map;
 
+@Setter
+@Getter
 public class APIRequest {
-    @Setter
-    @Getter
     private HttpRequestMethod requestMethod = HttpRequestMethod.GET;
-    @Setter
-    @Getter
     private String url;
-    @Setter
-    @Getter
     private String body;
-    @Setter
-    @Getter
     private Map<String, String> params;
-    @Setter
-    @Getter
     private Map<String, String> headers;
-    @Setter
     private String authorizationToken;
 
     public <T> APIResponse<T> execute(Class<T> clazz) {
@@ -52,8 +43,7 @@ public class APIRequest {
             if (params != null)
                 params.forEach(uriBuilder::addParameter);
 
-            HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
-                    .uri(new URI(uriBuilder.toString()));
+            HttpRequest.Builder requestBuilder = HttpRequest.newBuilder().uri(new URI(uriBuilder.toString()));
 
             switch (requestMethod) {
                 case GET -> requestBuilder.GET();
@@ -68,11 +58,7 @@ public class APIRequest {
             if (authorizationToken != null)
                 requestBuilder.header("Authorization", "Basic " + authorizationToken);
 
-            System.out.println(requestBuilder.build().uri());
-            String response = client.send(requestBuilder.build(), HttpResponse.BodyHandlers.ofString()).body();
-            System.out.println(response);
-
-            return response;
+            return client.send(requestBuilder.build(), HttpResponse.BodyHandlers.ofString()).body();
         } catch (URISyntaxException | IOException | InterruptedException e) {
             e.printStackTrace();
         }

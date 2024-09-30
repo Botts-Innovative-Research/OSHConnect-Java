@@ -5,6 +5,7 @@ import org.sensorhub.oshconnect.constants.Service;
 import org.sensorhub.oshconnect.net.APIRequest;
 import org.sensorhub.oshconnect.net.APIResponse;
 import org.sensorhub.oshconnect.net.HttpRequestMethod;
+import org.sensorhub.oshconnect.net.Protocol;
 import org.sensorhub.oshconnect.time.TimePeriod;
 
 import java.util.Base64;
@@ -21,6 +22,10 @@ public class Node {
      */
     private final String sensorHubRoot;
     /**
+     * Flag indicating if server is secured through TLS/SSL
+     */
+    private final boolean isSecure;
+    /**
      * A unique id of the server, for configuration management.
      */
     private final UUID uniqueId;
@@ -35,23 +40,39 @@ public class Node {
      */
     private TimePeriod timePeriod;
 
-    public Node(String sensorHubRoot) {
-        this(sensorHubRoot, null, null);
+    public Node(String sensorHubRoot, boolean isSecure) {
+        this(sensorHubRoot, isSecure, null, null);
     }
 
-    public Node(String sensorHubRoot, String username, String password) {
-        this(sensorHubRoot, username, password, UUID.randomUUID());
+    public Node(String sensorHubRoot, boolean isSecure, String username, String password) {
+        this(sensorHubRoot, isSecure, username, password, UUID.randomUUID());
     }
 
-    public Node(String sensorHubRoot, String username, String password, UUID uniqueId) {
+    public Node(String sensorHubRoot, boolean isSecure, String username, String password, UUID uniqueId) {
+        // Strip off the http:// or https:// prefix
+        if (sensorHubRoot.startsWith("http://")) {
+            sensorHubRoot = sensorHubRoot.substring(7);
+        } else if (sensorHubRoot.startsWith("https://")) {
+            sensorHubRoot = sensorHubRoot.substring(8);
+        }
+
         this.sensorHubRoot = sensorHubRoot;
         this.uniqueId = uniqueId;
+        this.isSecure = isSecure;
 
         if (username != null && password != null && !username.isEmpty() && !password.isEmpty()) {
             authorizationToken = Base64.getEncoder().encodeToString((username + ":" + password).getBytes());
         } else {
             authorizationToken = null;
         }
+    }
+
+    public String getHTTPPrefix() {
+        return isSecure ? Protocol.HTTPS.getPrefix() : Protocol.HTTP.getPrefix();
+    }
+
+    public String getWSPrefix() {
+        return isSecure ? Protocol.WSS.getPrefix() : Protocol.WS.getPrefix();
     }
 
     public String getApiEndpoint() {
@@ -70,7 +91,7 @@ public class Node {
     public List<System> discoverSystems() {
         APIRequest request = new APIRequest();
         request.setRequestMethod(HttpRequestMethod.GET);
-        request.setUrl(getSystemsEndpoint());
+        request.setUrl(getHTTPPrefix() + getSystemsEndpoint());
         if (authorizationToken != null) {
             request.setAuthorizationToken(authorizationToken);
         }
