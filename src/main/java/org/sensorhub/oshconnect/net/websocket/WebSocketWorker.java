@@ -9,9 +9,9 @@ import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.WebSocketListener;
 import org.eclipse.jetty.websocket.client.ClientUpgradeRequest;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
-import org.sensorhub.oshconnect.datamodels.Datastream;
-import org.sensorhub.oshconnect.datamodels.Node;
 import org.sensorhub.oshconnect.net.Protocol;
+import org.sensorhub.oshconnect.oshdatamodels.OSHDatastream;
+import org.sensorhub.oshconnect.oshdatamodels.OSHNode;
 
 import java.net.URI;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -37,26 +37,23 @@ public class WebSocketWorker implements WebSocketListener, Runnable {
     /**
      * The datastream object being updated by this worker
      */
-    private final Datastream datastream;
+    private final OSHDatastream datastream;
 
     /**
-     * The request to be made when the worker is executed
+     * The request to be made when the worker is executed.
      */
     private final String request;
 
     /**
-     * Constructor
-     *
-     * @param request The request to be made when the worker is executed
+     * @param request The request to be made when the worker is executed.
      */
-    public WebSocketWorker(Datastream datastream, String request) {
+    public WebSocketWorker(OSHDatastream datastream, String request) {
         this.datastream = datastream;
         this.request = request;
     }
 
     /**
-     * Command this worker to start if it is currently not connected,
-     * otherwise does nothing
+     * Command this worker to start if it is currently not connected, otherwise does nothing.
      */
     public void connect() {
         if (!isConnected()) {
@@ -121,13 +118,13 @@ public class WebSocketWorker implements WebSocketListener, Runnable {
     public void run() {
         // Get the parent node, each visualization is associated with an instance of OpenSensorHub
         // from which it can request samples to update the visualization
-        Node parentNode = datastream.getParentSystem().getParentNode();
+        OSHNode parentOSHNode = datastream.getParentSystem().getParentNode();
 
         // Get the protocol to use, in this case a WebSocket protocol, either secure or unsecured
-        String protocol = (parentNode.isSecure()) ? Protocol.WSS.getPrefix() : Protocol.WS.getPrefix();
+        String protocol = (parentOSHNode.isSecure()) ? Protocol.WSS.getPrefix() : Protocol.WS.getPrefix();
 
         // Build the request on the given protocol
-        String urlString = protocol + parentNode.getApiEndpoint() + request;
+        String urlString = protocol + parentOSHNode.getApiEndpoint() + request;
 
         System.out.println("url: " + urlString);
 
@@ -138,7 +135,7 @@ public class WebSocketWorker implements WebSocketListener, Runnable {
         ClientUpgradeRequest clientUpgradeRequest = new ClientUpgradeRequest();
 
         // Add the credentials to use
-        clientUpgradeRequest.setHeader("Authorization", "Basic " + parentNode.getAuthorizationToken());
+        clientUpgradeRequest.setHeader("Authorization", "Basic " + parentOSHNode.getAuthorizationToken());
 
         try {
             // Start the client

@@ -2,7 +2,7 @@ package org.sensorhub.oshconnect;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.sensorhub.oshconnect.datamodels.Node;
+import org.sensorhub.oshconnect.oshdatamodels.OSHNode;
 
 import java.util.List;
 import java.util.UUID;
@@ -12,16 +12,16 @@ import static org.sensorhub.oshconnect.TestConstants.*;
 
 class OSHConnectTest {
     private OSHConnect oshConnect;
-    private Node node1;
-    private Node node2;
+    private OSHNode node1;
+    private OSHNode node2;
     private UUID node1Id;
 
     @BeforeEach
     void setUp() {
         oshConnect = new OSHConnect();
         node1Id = UUID.randomUUID();
-        node1 = new Node(SENSOR_HUB_ROOT, IS_SECURE, USERNAME, PASSWORD, node1Id);
-        node2 = new Node(SENSOR_HUB_ROOT, IS_SECURE);
+        node1 = new OSHNode(SENSOR_HUB_ROOT, IS_SECURE, USERNAME, PASSWORD, node1Id);
+        node2 = new OSHNode(SENSOR_HUB_ROOT, IS_SECURE);
     }
 
     @Test

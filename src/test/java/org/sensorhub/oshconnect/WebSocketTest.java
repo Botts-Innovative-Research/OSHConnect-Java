@@ -1,9 +1,9 @@
 package org.sensorhub.oshconnect;
 
 import org.junit.jupiter.api.Test;
-import org.sensorhub.oshconnect.datamodels.Datastream;
-import org.sensorhub.oshconnect.datamodels.Node;
 import org.sensorhub.oshconnect.net.websocket.WebSocketWorker;
+import org.sensorhub.oshconnect.oshdatamodels.OSHDatastream;
+import org.sensorhub.oshconnect.oshdatamodels.OSHNode;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -12,19 +12,21 @@ import java.util.concurrent.TimeUnit;
 
 import static org.sensorhub.oshconnect.TestConstants.*;
 
-public class WebSocketTest {
+class WebSocketTest {
     @Test
     void testConnect() throws InterruptedException {
         OSHConnect oshConnect = new OSHConnect();
-        Node node = new Node(SENSOR_HUB_ROOT, IS_SECURE, USERNAME, PASSWORD);
-        oshConnect.addNode(node);
+        OSHNode oshNode = new OSHNode(SENSOR_HUB_ROOT, IS_SECURE, USERNAME, PASSWORD);
+        oshConnect.addNode(oshNode);
+        oshConnect.discoverSystems();
+        oshConnect.discoverDatastreams();
 
-        List<Datastream> datastreams = node.discoverDatastreams();
+        List<OSHDatastream> datastreams = oshConnect.getDatastreams();
         CountDownLatch latch = new CountDownLatch(datastreams.size());
         List<WebSocketWorker> workers = new ArrayList<>();
 
-        for (Datastream datastream : datastreams) {
-            System.out.println("Datastream: " + datastream);
+        for (OSHDatastream datastream : datastreams) {
+            System.out.println("Datastream: " + datastream.getDatastreamResource());
 
             String request = "/datastreams/" + datastream.getId() + "/observations?format=application/json";
 
@@ -35,7 +37,7 @@ public class WebSocketTest {
             workers.add(worker);
         }
 
-        latch.await(5, TimeUnit.SECONDS);
+        latch.await(1, TimeUnit.SECONDS);
 
         for (WebSocketWorker worker : workers) {
             worker.disconnect();

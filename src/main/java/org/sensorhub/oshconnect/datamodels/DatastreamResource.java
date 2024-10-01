@@ -4,11 +4,10 @@ import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import lombok.Setter;
 
 @Getter
 @RequiredArgsConstructor
-public class Datastream {
+public class DatastreamResource {
     private final String id;
     private final String name;
     @SerializedName("system@id")
@@ -33,8 +32,6 @@ public class Datastream {
     private final String[] parameters;
     private final Link[] links;
     private final DatastreamSchema schema;
-    @Setter
-    private transient System parentSystem;
 
     public String toJSON() {
         return new Gson().toJson(this);

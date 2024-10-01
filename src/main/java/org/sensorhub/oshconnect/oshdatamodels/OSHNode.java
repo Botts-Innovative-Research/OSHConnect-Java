@@ -1,24 +1,23 @@
-package org.sensorhub.oshconnect.datamodels;
+package org.sensorhub.oshconnect.oshdatamodels;
 
 import lombok.Getter;
 import org.sensorhub.oshconnect.constants.Service;
+import org.sensorhub.oshconnect.datamodels.SystemResource;
 import org.sensorhub.oshconnect.net.APIRequest;
 import org.sensorhub.oshconnect.net.APIResponse;
 import org.sensorhub.oshconnect.net.HttpRequestMethod;
 import org.sensorhub.oshconnect.net.Protocol;
 import org.sensorhub.oshconnect.time.TimePeriod;
 
-import java.util.Base64;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * Class representing an OpenSensorHub server instance or node
  */
 @Getter
-public class Node {
+public class OSHNode {
     /**
-     * The root URL of the OpenSensorHub server, i.e. http://localhost:8181/sensorhub
+     * The root URL of the OpenSensorHub server, i.e. localhost:8181/sensorhub
      */
     private final String sensorHubRoot;
     /**
@@ -34,21 +33,23 @@ public class Node {
      */
     private final String authorizationToken;
 
+    private final Set<OSHSystem> systems = new HashSet<>();
+
     /**
      * The time range for the OSHConnect instance.
      * This is used to bookend the playback of the datastreams.
      */
     private TimePeriod timePeriod;
 
-    public Node(String sensorHubRoot, boolean isSecure) {
+    public OSHNode(String sensorHubRoot, boolean isSecure) {
         this(sensorHubRoot, isSecure, null, null);
     }
 
-    public Node(String sensorHubRoot, boolean isSecure, String username, String password) {
+    public OSHNode(String sensorHubRoot, boolean isSecure, String username, String password) {
         this(sensorHubRoot, isSecure, username, password, UUID.randomUUID());
     }
 
-    public Node(String sensorHubRoot, boolean isSecure, String username, String password, UUID uniqueId) {
+    public OSHNode(String sensorHubRoot, boolean isSecure, String username, String password, UUID uniqueId) {
         // Strip off the http:// or https:// prefix
         if (sensorHubRoot.startsWith("http://")) {
             sensorHubRoot = sensorHubRoot.substring(7);
@@ -64,6 +65,39 @@ public class Node {
             authorizationToken = Base64.getEncoder().encodeToString((username + ":" + password).getBytes());
         } else {
             authorizationToken = null;
+        }
+    }
+
+    /**
+     * Discover systems belonging to this OpenSensorHub node.
+     */
+    public void discoverSystems() {
+        APIRequest request = new APIRequest();
+        request.setRequestMethod(HttpRequestMethod.GET);
+        request.setUrl(getHTTPPrefix() + getSystemsEndpoint());
+        if (authorizationToken != null) {
+            request.setAuthorizationToken(authorizationToken);
+        }
+
+        APIResponse<SystemResource> response = request.execute(SystemResource.class);
+        List<SystemResource> systemResources = response.getItems();
+
+        for (SystemResource systemResource : systemResources) {
+            if (systems.stream().noneMatch(s -> s.getId().equals(systemResource.getId()))) {
+                systems.add(new OSHSystem(systemResource, this));
+            }
+        }
+    }
+
+    /**
+     * Discover datastreams belonging to the systems of this OpenSensorHub node.
+     * This method should be called after discoverSystems().
+     * Note: This method may take a long time to complete if there are many systems and datastreams to discover;
+     * it is recommended to call OSHSystem.discoverDataStreams() on individual systems containing the datastreams of interest.
+     */
+    public void discoverDatastreams() {
+        for (OSHSystem system : systems) {
+            system.discoverDataStreams();
         }
     }
 
@@ -84,35 +118,23 @@ public class Node {
     }
 
     /**
-     * Discover systems from the nodes that have been added to the OSHConnect instance.
+     * Get a list of discovered systems.
      *
-     * @return a list of systems.
+     * @return The list of systems.
      */
-    public List<System> discoverSystems() {
-        APIRequest request = new APIRequest();
-        request.setRequestMethod(HttpRequestMethod.GET);
-        request.setUrl(getHTTPPrefix() + getSystemsEndpoint());
-        if (authorizationToken != null) {
-            request.setAuthorizationToken(authorizationToken);
-        }
-
-        APIResponse<System> response = request.execute(System.class);
-        List<System> systems = response.getItems();
-        systems.forEach(system -> system.setParentNode(this));
-        return systems;
+    public List<OSHSystem> getSystems() {
+        return List.copyOf(systems);
     }
 
     /**
-     * Discover datastreams from the nodes that have been added to the OSHConnect instance.
+     * Get a list of discovered datastreams for all systems of this node.
      *
-     * @return a list of datastreams.
+     * @return The list of datastreams.
      */
-    public List<Datastream> discoverDatastreams() {
-        var systems = discoverSystems();
-
+    public List<OSHDatastream> getDatastreams() {
         return systems.stream()
-                .map(System::discoverDataStreams)
-                .flatMap(List::stream)
+                .map(OSHSystem::getDatastreams)
+                .flatMap(Collection::stream)
                 .toList();
     }
 }
