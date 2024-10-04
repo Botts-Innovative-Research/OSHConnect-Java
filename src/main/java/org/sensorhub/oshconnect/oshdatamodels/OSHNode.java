@@ -1,6 +1,5 @@
 package org.sensorhub.oshconnect.oshdatamodels;
 
-import lombok.Getter;
 import org.sensorhub.oshconnect.constants.Service;
 import org.sensorhub.oshconnect.datamodels.SystemResource;
 import org.sensorhub.oshconnect.net.APIRequest;
@@ -9,7 +8,14 @@ import org.sensorhub.oshconnect.net.HttpRequestMethod;
 import org.sensorhub.oshconnect.net.Protocol;
 import org.sensorhub.oshconnect.time.TimePeriod;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+
+import lombok.Getter;
 
 /**
  * Class representing an OpenSensorHub server instance or node
@@ -132,9 +138,10 @@ public class OSHNode {
      * @return The list of datastreams.
      */
     public List<OSHDatastream> getDatastreams() {
-        return systems.stream()
-                .map(OSHSystem::getDatastreams)
-                .flatMap(Collection::stream)
-                .toList();
+        List<OSHDatastream> datastreams = new ArrayList<>();
+        for (OSHSystem system : systems) {
+            datastreams.addAll(system.getDatastreams());
+        }
+        return datastreams;
     }
 }

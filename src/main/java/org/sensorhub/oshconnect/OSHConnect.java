@@ -1,13 +1,19 @@
 package org.sensorhub.oshconnect;
 
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import org.sensorhub.oshconnect.oshdatamodels.OSHDatastream;
 import org.sensorhub.oshconnect.oshdatamodels.OSHNode;
 import org.sensorhub.oshconnect.oshdatamodels.OSHSystem;
 import org.sensorhub.oshconnect.time.TimeController;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 public class OSHConnect {
@@ -105,10 +111,9 @@ public class OSHConnect {
      * @return The list of systems.
      */
     public List<OSHSystem> getSystems() {
-        return oshNodes.stream()
-                .map(OSHNode::getSystems)
-                .flatMap(Collection::stream)
-                .toList();
+        List<OSHSystem> systems = new ArrayList<>();
+        oshNodes.forEach(node -> systems.addAll(node.getSystems()));
+        return systems;
     }
 
     /**
@@ -117,9 +122,8 @@ public class OSHConnect {
      * @return The list of datastreams.
      */
     public List<OSHDatastream> getDatastreams() {
-        return oshNodes.stream()
-                .map(OSHNode::getDatastreams)
-                .flatMap(Collection::stream)
-                .toList();
+        List<OSHDatastream> datastreams = new ArrayList<>();
+        oshNodes.forEach(node -> datastreams.addAll(node.getDatastreams()));
+        return datastreams;
     }
 }
