@@ -29,7 +29,7 @@ public class OSHSystem {
     public void discoverDataStreams() {
         APIRequest request = new APIRequest();
         request.setRequestMethod(HttpRequestMethod.GET);
-        request.setUrl(parentNode.getHTTPPrefix() + getDataStreamsEndpoint());
+        request.setUrl(parentNode.getHTTPPrefix() + getDatastreamsEndpoint());
         if (parentNode.getAuthorizationToken() != null) {
             request.setAuthorizationToken(parentNode.getAuthorizationToken());
         }
@@ -49,7 +49,7 @@ public class OSHSystem {
      *
      * @return The endpoint.
      */
-    public String getDataStreamsEndpoint() {
+    public String getDatastreamsEndpoint() {
         return parentNode.getSystemsEndpoint() + "/" + systemResource.getId() + "/datastreams";
     }
 
