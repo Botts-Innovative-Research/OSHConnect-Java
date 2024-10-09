@@ -2,6 +2,7 @@ package org.sensorhub.oshconnect.datamodels;
 
 import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
+
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
@@ -33,12 +34,12 @@ public class DatastreamResource {
     private final Link[] links;
     private final DatastreamSchema schema;
 
-    public String toJSON() {
+    public String toJson() {
         return new Gson().toJson(this);
     }
 
     @Override
     public String toString() {
-        return toJSON();
+        return toJson();
     }
 }

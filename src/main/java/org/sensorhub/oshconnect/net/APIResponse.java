@@ -2,9 +2,10 @@ package org.sensorhub.oshconnect.net;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import lombok.Getter;
 
 import java.util.List;
+
+import lombok.Getter;
 
 @Getter
 public class APIResponse<T> {
@@ -18,12 +19,12 @@ public class APIResponse<T> {
         return new Gson().fromJson(json, TypeToken.getParameterized(APIResponse.class, clazz).getType());
     }
 
-    public String toJSON() {
+    public String toJson() {
         return new Gson().toJson(this);
     }
 
     @Override
     public String toString() {
-        return toJSON();
+        return toJson();
     }
 }

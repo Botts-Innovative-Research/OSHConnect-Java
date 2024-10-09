@@ -1,6 +1,7 @@
 package org.sensorhub.oshconnect.datamodels;
 
 import com.google.gson.Gson;
+
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
@@ -9,12 +10,12 @@ import lombok.RequiredArgsConstructor;
 public class DatastreamSchema {
     private final String obsFormat;
 
-    public String toJSON() {
+    public String toJson() {
         return new Gson().toJson(this);
     }
 
     @Override
     public String toString() {
-        return toJSON();
+        return toJson();
     }
 }

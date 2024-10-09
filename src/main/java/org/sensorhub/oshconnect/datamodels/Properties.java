@@ -1,6 +1,7 @@
 package org.sensorhub.oshconnect.datamodels;
 
 import com.google.gson.Gson;
+
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
@@ -13,12 +14,12 @@ public class Properties {
     private final String description;
     private final String[] validTime;
 
-    public String toJSON() {
+    public String toJson() {
         return new Gson().toJson(this);
     }
 
     @Override
     public String toString() {
-        return toJSON();
+        return toJson();
     }
 }
