@@ -11,6 +11,7 @@ import org.sensorhub.oshconnect.net.websocket.DatastreamListener;
 import org.sensorhub.oshconnect.oshdatamodels.OSHDatastream;
 import org.sensorhub.oshconnect.oshdatamodels.OSHNode;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -23,24 +24,33 @@ class WebSocketTest {
         OSHNode oshNode = new OSHNode(SENSOR_HUB_ROOT, IS_SECURE, USERNAME, PASSWORD);
         oshConnect.addNode(oshNode);
         oshConnect.discoverSystems();
-        oshConnect.discoverDatastreams();
+        List<OSHDatastream> datastreams = oshConnect.discoverDatastreams();
 
-        List<OSHDatastream> datastreams = oshConnect.getDatastreams();
         CountDownLatch latch = new CountDownLatch(datastreams.size());
         List<DatastreamListener> datastreamListeners = new ArrayList<>();
 
         for (OSHDatastream datastream : datastreams) {
             System.out.println("Datastream: " + datastream.getDatastreamResource());
 
-            String request = datastream.getObservationsEndpoint();
-
-            System.out.println("Request: " + request);
-
-            DatastreamListener listener = new DatastreamListener(datastream, request) {
+            DatastreamListener listener = new DatastreamListener(datastream) {
                 @Override
-                public void onStreamUpdate(byte[] data) {
-                    Observation observation = getObservationFromJson(data);
-                    System.out.println("Datastream update: " + observation.getResult());
+                public void onStreamJson(long timestamp, Observation observation) {
+                    System.out.println("  onStreamJson: timestamp=" + Instant.ofEpochMilli(timestamp) + ", observation=" + observation);
+                }
+
+                @Override
+                public void onStreamBinary(long timestamp, byte[] data) {
+                    System.out.println("onStreamBinary: timestamp=" + Instant.ofEpochMilli(timestamp) + ", data=binary");
+                }
+
+                @Override
+                public void onStreamCsv(long timestamp, String csv) {
+                    System.out.println("   onStreamCsv: timestamp=" + Instant.ofEpochMilli(timestamp) + ", csv=" + csv);
+                }
+
+                @Override
+                public void onStreamXml(long timestamp, String xml) {
+                    System.out.println("   onStreamXml: timestamp=" + Instant.ofEpochMilli(timestamp) + ", xml=" + xml);
                 }
             };
 
