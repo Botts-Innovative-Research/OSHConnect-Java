@@ -4,13 +4,15 @@ import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.annotations.SerializedName;
 
+import java.util.List;
+
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 public class Observation {
     @Getter
-    @SerializedName("datastream@Id")
+    @SerializedName("datastream@id")
     private final String datastreamId;
     @Getter
     @SerializedName("foi@id")
@@ -22,7 +24,7 @@ public class Observation {
     private final JsonElement result;
     @Getter
     @SerializedName("result@links")
-    private final Link[] resultLinks;
+    private final List<Link> resultLinks;
 
     public String getResult() {
         return result.toString();
