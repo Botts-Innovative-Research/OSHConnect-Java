@@ -76,8 +76,10 @@ public class OSHNode {
 
     /**
      * Discover systems belonging to this OpenSensorHub node.
+     *
+     * @return The list of systems.
      */
-    public void discoverSystems() {
+    public List<OSHSystem> discoverSystems() {
         APIRequest request = new APIRequest();
         request.setRequestMethod(HttpRequestMethod.GET);
         request.setUrl(getHTTPPrefix() + getSystemsEndpoint());
@@ -93,6 +95,8 @@ public class OSHNode {
                 systems.add(new OSHSystem(systemResource, this));
             }
         }
+
+        return getSystems();
     }
 
     /**
@@ -100,11 +104,14 @@ public class OSHNode {
      * This method should be called after discoverSystems().
      * Note: This method may take a long time to complete if there are many systems and datastreams to discover;
      * it is recommended to call OSHSystem.discoverDataStreams() on individual systems containing the datastreams of interest.
+     *
+     * @return The list of datastreams.
      */
-    public void discoverDatastreams() {
+    public List<OSHDatastream> discoverDatastreams() {
         for (OSHSystem system : systems) {
             system.discoverDataStreams();
         }
+        return getDatastreams();
     }
 
     public String getHTTPPrefix() {

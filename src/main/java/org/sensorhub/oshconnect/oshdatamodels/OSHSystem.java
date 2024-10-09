@@ -1,7 +1,5 @@
 package org.sensorhub.oshconnect.oshdatamodels;
 
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import org.sensorhub.oshconnect.datamodels.DatastreamResource;
 import org.sensorhub.oshconnect.datamodels.SystemResource;
 import org.sensorhub.oshconnect.net.APIRequest;
@@ -11,6 +9,9 @@ import org.sensorhub.oshconnect.net.HttpRequestMethod;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Class representing an OpenSensorHub system.
@@ -25,8 +26,10 @@ public class OSHSystem {
 
     /**
      * Discover the datastreams associated with the system.
+     *
+     * @return The list of datastreams.
      */
-    public void discoverDataStreams() {
+    public List<OSHDatastream> discoverDataStreams() {
         APIRequest request = new APIRequest();
         request.setRequestMethod(HttpRequestMethod.GET);
         request.setUrl(parentNode.getHTTPPrefix() + getDatastreamsEndpoint());
@@ -42,6 +45,8 @@ public class OSHSystem {
                 datastreams.add(new OSHDatastream(datastreamResource, this));
             }
         }
+
+        return getDatastreams();
     }
 
     /**

@@ -90,9 +90,12 @@ public class OSHConnect {
 
     /**
      * Discover systems belonging to all OpenSensorHub nodes previously added to the OSHConnect instance.
+     *
+     * @return A list of all systems discovered by the OSHConnect instance.
      */
-    public void discoverSystems() {
+    public List<OSHSystem> discoverSystems() {
         oshNodes.forEach(OSHNode::discoverSystems);
+        return getSystems();
     }
 
     /**
@@ -100,9 +103,12 @@ public class OSHConnect {
      * This method should be called after discoverSystems().
      * Note: This method may take a long time to complete if there are many systems and datastreams to discover;
      * it is recommended to call OSHSystem.discoverDataStreams() on individual systems containing the datastreams of interest.
+     *
+     * @return A list of all datastreams discovered by the OSHConnect instance.
      */
-    public void discoverDatastreams() {
+    public List<OSHDatastream> discoverDatastreams() {
         oshNodes.forEach(OSHNode::discoverDatastreams);
+        return getDatastreams();
     }
 
     /**
