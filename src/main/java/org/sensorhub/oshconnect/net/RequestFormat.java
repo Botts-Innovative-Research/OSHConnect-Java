@@ -2,6 +2,9 @@ package org.sensorhub.oshconnect.net;
 
 import lombok.Getter;
 
+/**
+ * Enum representing the format of the request.
+ */
 @Getter
 public enum RequestFormat {
     JSON("application/json"),
@@ -15,9 +18,9 @@ public enum RequestFormat {
     /**
      * String representation of the format.
      */
-    private final String format;
+    private final String mimeType;
 
-    RequestFormat(String format) {
-        this.format = format;
+    RequestFormat(String mimeType) {
+        this.mimeType = mimeType;
     }
 }

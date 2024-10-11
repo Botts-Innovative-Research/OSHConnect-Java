@@ -6,7 +6,6 @@ import org.sensorhub.oshconnect.net.APIRequest;
 import org.sensorhub.oshconnect.net.APIResponse;
 import org.sensorhub.oshconnect.net.HttpRequestMethod;
 import org.sensorhub.oshconnect.net.Protocol;
-import org.sensorhub.oshconnect.time.TimePeriod;
 
 import java.util.ArrayList;
 import java.util.Base64;
@@ -40,12 +39,6 @@ public class OSHNode {
     private final String authorizationToken;
 
     private final Set<OSHSystem> systems = new HashSet<>();
-
-    /**
-     * The time range for the OSHConnect instance.
-     * This is used to bookend the playback of the datastreams.
-     */
-    private TimePeriod timePeriod;
 
     public OSHNode(String sensorHubRoot, boolean isSecure) {
         this(sensorHubRoot, isSecure, null, null);

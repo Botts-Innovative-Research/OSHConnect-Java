@@ -3,7 +3,6 @@ package org.sensorhub.oshconnect;
 import org.sensorhub.oshconnect.oshdatamodels.OSHDatastream;
 import org.sensorhub.oshconnect.oshdatamodels.OSHNode;
 import org.sensorhub.oshconnect.oshdatamodels.OSHSystem;
-import org.sensorhub.oshconnect.time.TimeController;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -23,8 +22,6 @@ public class OSHConnect {
     @Getter
     private final String name;
     private final Set<OSHNode> oshNodes = new HashSet<>();
-    @Getter
-    private final TimeController timeController = new TimeController();
 
     public OSHConnect() {
         this("OSH Connect");

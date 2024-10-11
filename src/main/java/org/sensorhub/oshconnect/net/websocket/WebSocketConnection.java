@@ -12,6 +12,8 @@ import org.sensorhub.oshconnect.oshdatamodels.OSHNode;
 
 import java.net.URI;
 
+import lombok.Getter;
+
 /**
  * Class representing an active connection to a WebSocket.
  */
@@ -19,6 +21,7 @@ public class WebSocketConnection implements WebSocketListener {
     private final DatastreamListener streamListener;
     private final String request;
     private final WebSocketClient client = new WebSocketClient();
+    @Getter
     private StreamStatus status = StreamStatus.DISCONNECTED;
 
     public WebSocketConnection(DatastreamListener streamListener, String request) {
@@ -66,7 +69,7 @@ public class WebSocketConnection implements WebSocketListener {
 
     @Override
     public void onWebSocketText(String s) {
-        streamListener.onStreamUpdate(s);
+        // Not implemented
     }
 
     @Override

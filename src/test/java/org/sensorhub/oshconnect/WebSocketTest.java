@@ -7,12 +7,14 @@ import static org.sensorhub.oshconnect.TestConstants.USERNAME;
 
 import org.junit.jupiter.api.Test;
 import org.sensorhub.oshconnect.datamodels.Observation;
-import org.sensorhub.oshconnect.net.websocket.DatastreamListener;
+import org.sensorhub.oshconnect.net.RequestFormat;
+import org.sensorhub.oshconnect.net.websocket.DatastreamEventArgs;
+import org.sensorhub.oshconnect.net.websocket.DatastreamHandler;
 import org.sensorhub.oshconnect.oshdatamodels.OSHDatastream;
 import org.sensorhub.oshconnect.oshdatamodels.OSHNode;
+import org.sensorhub.oshconnect.time.TimeExtent;
 
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -27,41 +29,36 @@ class WebSocketTest {
         List<OSHDatastream> datastreams = oshConnect.discoverDatastreams();
 
         CountDownLatch latch = new CountDownLatch(datastreams.size());
-        List<DatastreamListener> datastreamListeners = new ArrayList<>();
 
+        DatastreamHandler handler = new DatastreamHandler() {
+            @Override
+            public void onStreamUpdate(DatastreamEventArgs args) {
+                var datastreamId = args.getDatastream().getDatastreamResource().getId();
+                var timestamp = args.getTimestamp();
+                if (args.getFormat() == RequestFormat.JSON) {
+                    Observation observation = Observation.fromJson(args.getData());
+                    System.out.println("onStreamUpdate: timestamp=" + timestamp + " datastreamId=" + datastreamId + " observation=" + observation);
+                } else {
+                    System.out.println("onStreamUpdate: timestamp=" + timestamp + " datastreamId=" + datastreamId + " data=binary");
+                }
+            }
+        };
+
+        // Add all the discovered datastreams to the handler.
         for (OSHDatastream datastream : datastreams) {
-            System.out.println("Datastream: " + datastream.getDatastreamResource());
-
-            DatastreamListener listener = new DatastreamListener(datastream) {
-                @Override
-                public void onStreamJson(long timestamp, Observation observation) {
-                    System.out.println("  onStreamJson: timestamp=" + Instant.ofEpochMilli(timestamp) + ", observation=" + observation);
-                }
-
-                @Override
-                public void onStreamBinary(long timestamp, byte[] data) {
-                    System.out.println("onStreamBinary: timestamp=" + Instant.ofEpochMilli(timestamp) + ", data=binary");
-                }
-
-                @Override
-                public void onStreamCsv(long timestamp, String csv) {
-                    System.out.println("   onStreamCsv: timestamp=" + Instant.ofEpochMilli(timestamp) + ", csv=" + csv);
-                }
-
-                @Override
-                public void onStreamXml(long timestamp, String xml) {
-                    System.out.println("   onStreamXml: timestamp=" + Instant.ofEpochMilli(timestamp) + ", xml=" + xml);
-                }
-            };
-
-            listener.connect();
-            datastreamListeners.add(listener);
+            handler.addDatastream(datastream);
         }
 
+        // Connect, listen for updates.
+        handler.connect();
         latch.await(3, TimeUnit.SECONDS);
 
-        for (DatastreamListener datastreamListener : datastreamListeners) {
-            datastreamListener.disconnect();
-        }
+        // Start listening for historical data instead of live data.
+        Instant oneMinuteAgo = Instant.now().minusSeconds(60);
+        handler.setTimeExtent(TimeExtent.startingAt(oneMinuteAgo));
+        handler.setReplaySpeed(0.2);
+        latch.await(3, TimeUnit.SECONDS);
+
+        handler.disconnect();
     }
 }
