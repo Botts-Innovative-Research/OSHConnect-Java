@@ -16,11 +16,15 @@ import java.util.regex.Pattern;
 import lombok.Getter;
 
 /**
- * Class representing a listener for a datastream.
+ * Listener for a single datastream.
+ * Override the {@link #onStreamUpdate(DatastreamEventArgs)} method to handle the data received from the datastream.
+ * To listen to multiple datastreams, use a {@link DatastreamHandler}.
  */
 public abstract class DatastreamListener implements DatastreamEventListener {
     private static final String DATE_REGEX_TEXT = "\\d{4}-\\d{2}-\\d{2}T\\d{2}:";
     private static final String DATE_REGEX_XML = "<[^>]+>(\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d+Z)</[^>]+>";
+    private boolean isShutdown = false;
+
     /**
      * The datastream being listened to.
      */
@@ -90,10 +94,11 @@ public abstract class DatastreamListener implements DatastreamEventListener {
      * Connects to the datastream using the specified request format, replay speed, and time period.
      */
     public void connect() {
-        if (webSocketConnection != null) {
-            disconnect();
+        if (getStatus() == StreamStatus.SHUTDOWN) {
+            throw new IllegalStateException("Listener has been shut down.");
         }
 
+        disconnect();
         String request = buildRequestString();
         webSocketConnection = new WebSocketConnection(this, request);
         webSocketConnection.connect();
@@ -107,6 +112,15 @@ public abstract class DatastreamListener implements DatastreamEventListener {
             webSocketConnection.disconnect();
             webSocketConnection = null;
         }
+    }
+
+    /**
+     * Shuts down the datastream listener.
+     * Disconnects from the datastream and prevents further connections.
+     */
+    public void shutdown() {
+        isShutdown = true;
+        disconnect();
     }
 
     /**
@@ -257,7 +271,9 @@ public abstract class DatastreamListener implements DatastreamEventListener {
     }
 
     public StreamStatus getStatus() {
-        if (webSocketConnection == null) {
+        if (isShutdown) {
+            return StreamStatus.SHUTDOWN;
+        } else if (webSocketConnection == null) {
             return StreamStatus.DISCONNECTED;
         } else {
             return webSocketConnection.getStatus();

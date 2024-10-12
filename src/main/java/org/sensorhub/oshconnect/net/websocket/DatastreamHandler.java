@@ -1,16 +1,21 @@
 package org.sensorhub.oshconnect.net.websocket;
 
+import org.sensorhub.oshconnect.OSHConnect;
 import org.sensorhub.oshconnect.net.RequestFormat;
 import org.sensorhub.oshconnect.oshdatamodels.OSHDatastream;
 import org.sensorhub.oshconnect.time.TimeExtent;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 import lombok.Getter;
 
 /**
- * Handler for multiple datastreams.
+ * A handler for multiple datastreams.
+ * Override the {@link #onStreamUpdate(DatastreamEventArgs)} method to receive data from the datastreams.
+ * Use {@link OSHConnect#createDatastreamHandler(Consumer)} to create a new handler associated with an OSHConnect instance,
+ * which will allow OSHConnect to manage the handler and shut it down when the OSHConnect instance is shut down.
  */
 public abstract class DatastreamHandler implements DatastreamEventListener {
     private final List<DatastreamListener> datastreamListeners = new ArrayList<>();
@@ -41,6 +46,16 @@ public abstract class DatastreamHandler implements DatastreamEventListener {
     private StreamStatus status = StreamStatus.DISCONNECTED;
 
     /**
+     * Creates a new datastream handler.
+     * To ensure this handler is associated with an OSHConnect instance,
+     * use {@link OSHConnect#createDatastreamHandler(Consumer)} to create a new handler.
+     * Doing so will allow OSHConnect to manage the handler,
+     * and shut it down when the OSHConnect instance is shut down.
+     */
+    protected DatastreamHandler() {
+    }
+
+    /**
      * Creates a new datastream listener for the specified datastream.
      */
     private DatastreamListener createDatastreamListener(OSHDatastream datastream, DatastreamHandler handler) {
@@ -56,9 +71,12 @@ public abstract class DatastreamHandler implements DatastreamEventListener {
      * Connects to all datastreams.
      */
     public void connect() {
-        for (DatastreamListener listener : datastreamListeners) {
-            listener.connect();
+        if (getStatus() == StreamStatus.SHUTDOWN) {
+            throw new IllegalStateException("Handler has been shut down.");
         }
+
+        removeInactiveDatastreams();
+        datastreamListeners.forEach(DatastreamListener::connect);
         status = StreamStatus.CONNECTED;
     }
 
@@ -66,19 +84,33 @@ public abstract class DatastreamHandler implements DatastreamEventListener {
      * Disconnects from all datastreams.
      */
     public void disconnect() {
-        for (DatastreamListener listener : datastreamListeners) {
-            listener.disconnect();
-        }
+        datastreamListeners.forEach(DatastreamListener::disconnect);
         status = StreamStatus.DISCONNECTED;
+    }
+
+    /**
+     * Shuts down the datastream handler.
+     * This will disconnect from all datastreams and remove them from the handler.
+     * The handler will no longer be usable after this method is called.
+     */
+    public void shutdown() {
+        datastreamListeners.forEach(DatastreamListener::shutdown);
+        datastreamListeners.clear();
+        status = StreamStatus.SHUTDOWN;
     }
 
     /**
      * Adds a datastream to the handler.
      * Also connects to the datastream if the handler is already connected.
+     * If the datastream is already in the handler, it will not be added again.
      *
      * @param datastream the datastream to add.
      */
     public void addDatastream(OSHDatastream datastream) {
+        if (datastreamListeners.stream().anyMatch(l -> l.getDatastream().equals(datastream))) {
+            return;
+        }
+
         DatastreamListener listener = createDatastreamListener(datastream, this);
         listener.setRequestFormat(requestFormat);
         listener.setReplaySpeed(replaySpeed);
@@ -95,13 +127,13 @@ public abstract class DatastreamHandler implements DatastreamEventListener {
      *
      * @param datastream the datastream to remove.
      */
-    public void removeDatastream(OSHDatastream datastream) {
+    public void shutdownDatastream(OSHDatastream datastream) {
         DatastreamListener listener = datastreamListeners.stream()
                 .filter(l -> l.getDatastream().equals(datastream))
                 .findFirst()
                 .orElse(null);
         if (listener != null) {
-            listener.disconnect();
+            listener.shutdown();
             datastreamListeners.remove(listener);
         }
     }
@@ -109,15 +141,23 @@ public abstract class DatastreamHandler implements DatastreamEventListener {
     /**
      * Disconnects from all datastreams and removes them from the handler.
      */
-    public void removeAllDatastreams() {
+    public void shutdownAllDatastreams() {
         datastreamListeners.forEach(DatastreamListener::disconnect);
         datastreamListeners.clear();
+    }
+
+    /**
+     * Removes datastreams that have been shut down.
+     */
+    private void removeInactiveDatastreams() {
+        datastreamListeners.removeIf(listener -> listener.getStatus() == StreamStatus.SHUTDOWN);
     }
 
     /**
      * Get a list of datastreams in the handler.
      */
     public List<OSHDatastream> getDatastreams() {
+        removeInactiveDatastreams();
         List<OSHDatastream> datastreams = new ArrayList<>();
         datastreamListeners.forEach(listener -> datastreams.add(listener.getDatastream()));
         return datastreams;

@@ -8,7 +8,6 @@ import static org.sensorhub.oshconnect.TestConstants.USERNAME;
 import org.junit.jupiter.api.Test;
 import org.sensorhub.oshconnect.datamodels.Observation;
 import org.sensorhub.oshconnect.net.RequestFormat;
-import org.sensorhub.oshconnect.net.websocket.DatastreamEventArgs;
 import org.sensorhub.oshconnect.net.websocket.DatastreamHandler;
 import org.sensorhub.oshconnect.oshdatamodels.OSHDatastream;
 import org.sensorhub.oshconnect.oshdatamodels.OSHNode;
@@ -30,19 +29,16 @@ class WebSocketTest {
 
         CountDownLatch latch = new CountDownLatch(datastreams.size());
 
-        DatastreamHandler handler = new DatastreamHandler() {
-            @Override
-            public void onStreamUpdate(DatastreamEventArgs args) {
-                var datastreamId = args.getDatastream().getDatastreamResource().getId();
-                var timestamp = args.getTimestamp();
-                if (args.getFormat() == RequestFormat.JSON) {
-                    Observation observation = Observation.fromJson(args.getData());
-                    System.out.println("onStreamUpdate: timestamp=" + timestamp + " datastreamId=" + datastreamId + " observation=" + observation);
-                } else {
-                    System.out.println("onStreamUpdate: timestamp=" + timestamp + " datastreamId=" + datastreamId + " data=binary");
-                }
+        DatastreamHandler handler = oshConnect.createDatastreamHandler(args -> {
+            var datastreamId = args.getDatastream().getDatastreamResource().getId();
+            var timestamp = args.getTimestamp();
+            if (args.getFormat() == RequestFormat.JSON) {
+                Observation observation = Observation.fromJson(args.getData());
+                System.out.println("onStreamUpdate: timestamp=" + timestamp + " datastreamId=" + datastreamId + " observation=" + observation);
+            } else {
+                System.out.println("onStreamUpdate: timestamp=" + timestamp + " datastreamId=" + datastreamId + " data=binary");
             }
-        };
+        });
 
         // Add all the discovered datastreams to the handler.
         for (OSHDatastream datastream : datastreams) {
@@ -59,6 +55,6 @@ class WebSocketTest {
         handler.setReplaySpeed(0.2);
         latch.await(3, TimeUnit.SECONDS);
 
-        handler.disconnect();
+        oshConnect.shutdownDatastreamHandlers();
     }
 }

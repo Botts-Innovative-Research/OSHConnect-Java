@@ -1,14 +1,22 @@
 package org.sensorhub.oshconnect;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.sensorhub.oshconnect.TestConstants.IS_SECURE;
+import static org.sensorhub.oshconnect.TestConstants.PASSWORD;
+import static org.sensorhub.oshconnect.TestConstants.SENSOR_HUB_ROOT;
+import static org.sensorhub.oshconnect.TestConstants.USERNAME;
+
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.sensorhub.oshconnect.net.websocket.DatastreamEventArgs;
+import org.sensorhub.oshconnect.net.websocket.DatastreamHandler;
 import org.sensorhub.oshconnect.oshdatamodels.OSHNode;
 
 import java.util.List;
 import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.sensorhub.oshconnect.TestConstants.*;
 
 class OSHConnectTest {
     private OSHConnect oshConnect;
@@ -22,6 +30,11 @@ class OSHConnectTest {
         node1Id = UUID.randomUUID();
         node1 = new OSHNode(SENSOR_HUB_ROOT, IS_SECURE, USERNAME, PASSWORD, node1Id);
         node2 = new OSHNode(SENSOR_HUB_ROOT, IS_SECURE);
+    }
+
+    @AfterEach
+    void tearDown() {
+        oshConnect.shutdown();
     }
 
     @Test
@@ -77,6 +90,15 @@ class OSHConnectTest {
     }
 
     @Test
+    void removeAllNodes() {
+        oshConnect.addNode(node1);
+        oshConnect.addNode(node2);
+        assertEquals(2, oshConnect.getNodes().size());
+        oshConnect.removeAllNodes();
+        assertEquals(0, oshConnect.getNodes().size());
+    }
+
+    @Test
     void getNode() {
         oshConnect.addNode(node1);
         oshConnect.addNode(node2);
@@ -88,5 +110,75 @@ class OSHConnectTest {
         oshConnect.addNode(node1);
         oshConnect.addNode(node2);
         assertEquals(2, oshConnect.getNodes().size());
+    }
+
+    @Test
+    void getNode_NotFound() {
+        oshConnect.addNode(node1);
+        oshConnect.addNode(node2);
+        assertNull(oshConnect.getNode(UUID.randomUUID()));
+    }
+
+    @Test
+    void createDatastreamHandler() {
+        oshConnect.createDatastreamHandler(args -> {
+            // Do nothing
+        });
+        assertEquals(1, oshConnect.getDatastreamHandlers().size());
+    }
+
+    @Test
+    void addDatastreamHandler() {
+        DatastreamHandler handler = new DatastreamHandler() {
+            @Override
+            public void onStreamUpdate(DatastreamEventArgs args) {
+                // Do nothing
+            }
+        };
+        assertEquals(0, oshConnect.getDatastreamHandlers().size());
+        oshConnect.addDatastreamHandler(handler);
+        assertEquals(1, oshConnect.getDatastreamHandlers().size());
+    }
+
+    @Test
+    void shutdownDatastreamHandler() {
+        DatastreamHandler handler = oshConnect.createDatastreamHandler(args -> {
+            // Do nothing
+        });
+
+        assertEquals(1, oshConnect.getDatastreamHandlers().size());
+        oshConnect.shutdownDatastreamHandler(handler);
+        assertEquals(0, oshConnect.getDatastreamHandlers().size());
+
+        assertThrows(IllegalStateException.class, handler::connect);
+    }
+
+    @Test
+    void shutdownDatastreamHandlers() {
+        oshConnect.createDatastreamHandler(args -> {
+            // Do nothing
+        });
+        oshConnect.createDatastreamHandler(args -> {
+            // Do nothing
+        });
+
+        assertEquals(2, oshConnect.getDatastreamHandlers().size());
+        oshConnect.shutdownDatastreamHandlers();
+        assertEquals(0, oshConnect.getDatastreamHandlers().size());
+    }
+
+    @Test
+    void shutdown() {
+        oshConnect.createDatastreamHandler(args -> {
+            // Do nothing
+        });
+        oshConnect.addNode(node1);
+        oshConnect.addNode(node2);
+
+        assertEquals(2, oshConnect.getNodes().size());
+        assertEquals(1, oshConnect.getDatastreamHandlers().size());
+        oshConnect.shutdown();
+        assertEquals(0, oshConnect.getNodes().size());
+        assertEquals(0, oshConnect.getDatastreamHandlers().size());
     }
 }
