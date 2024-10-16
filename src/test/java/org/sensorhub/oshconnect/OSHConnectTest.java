@@ -53,6 +53,10 @@ class OSHConnectTest {
         assertEquals(1, oshConnect.getNodes().size());
         oshConnect.addNode(node1);
         assertEquals(1, oshConnect.getNodes().size());
+
+        var duplicateNode = new OSHNode(SENSOR_HUB_ROOT, IS_SECURE, USERNAME, PASSWORD, node1Id);
+        oshConnect.addNode(duplicateNode);
+        assertEquals(1, oshConnect.getNodes().size());
     }
 
     @Test

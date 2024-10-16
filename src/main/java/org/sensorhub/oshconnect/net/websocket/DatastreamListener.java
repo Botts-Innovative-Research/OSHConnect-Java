@@ -1,6 +1,6 @@
 package org.sensorhub.oshconnect.net.websocket;
 
-import org.sensorhub.oshconnect.datamodels.Observation;
+import org.json.JSONObject;
 import org.sensorhub.oshconnect.net.RequestFormat;
 import org.sensorhub.oshconnect.oshdatamodels.OSHDatastream;
 import org.sensorhub.oshconnect.time.TimeExtent;
@@ -170,8 +170,9 @@ public abstract class DatastreamListener implements DatastreamEventListener {
      */
     private long determineTimestamp(RequestFormat format, byte[] data) {
         if (format == RequestFormat.JSON || format == RequestFormat.OM_JSON || format == RequestFormat.SWE_JSON) {
-            Observation observation = Observation.fromJson(data);
-            return Instant.parse(observation.getPhenomenonTime()).toEpochMilli();
+            JSONObject json = new JSONObject(new String(data));
+            String phenomenonTime = json.getString("phenomenonTime");
+            return Instant.parse(phenomenonTime).toEpochMilli();
         } else if (format == RequestFormat.SWE_XML) {
             // Get the timestamp from the first date in the XML
             String xml = new String(data);

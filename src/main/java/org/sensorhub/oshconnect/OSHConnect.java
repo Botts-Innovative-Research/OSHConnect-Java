@@ -1,11 +1,14 @@
 package org.sensorhub.oshconnect;
 
+import org.sensorhub.oshconnect.config.ConfigManager;
+import org.sensorhub.oshconnect.config.ConfigManagerJson;
 import org.sensorhub.oshconnect.net.websocket.DatastreamEventArgs;
 import org.sensorhub.oshconnect.net.websocket.DatastreamHandler;
 import org.sensorhub.oshconnect.oshdatamodels.OSHDatastream;
 import org.sensorhub.oshconnect.oshdatamodels.OSHNode;
 import org.sensorhub.oshconnect.oshdatamodels.OSHSystem;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -15,38 +18,90 @@ import java.util.UUID;
 import java.util.function.Consumer;
 
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 
-@RequiredArgsConstructor
+/**
+ * OSHConnect is the main class for connecting to OpenSensorHub servers and managing datastreams.
+ */
 public class OSHConnect {
     /**
      * The name of the OSHConnect instance.
      */
     @Getter
     private final String name;
+    /**
+     * Nodes added to the OSHConnect instance.
+     */
     private final Set<OSHNode> oshNodes = new HashSet<>();
+    /**
+     * Datastream handlers added to the OSHConnect instance.
+     */
     private final Set<DatastreamHandler> datastreamHandlers = new HashSet<>();
 
+    /**
+     * The configuration manager used to export and import configuration data.
+     */
+    @Getter
+    @Setter
+    private ConfigManager configManager;
+
+    /**
+     * Create a new OSHConnect instance.
+     */
     public OSHConnect() {
         this("OSH Connect");
     }
 
     /**
+     * Create a new OSHConnect instance with the given name.
+     *
+     * @param name The name of the OSHConnect instance.
+     */
+    public OSHConnect(String name) {
+        this(name, new ConfigManagerJson());
+    }
+
+    /**
+     * Create a new OSHConnect instance with a given name and configuration manager.
+     *
+     * @param name          The name of the OSHConnect instance.
+     * @param configManager The configuration manager to use.
+     */
+    public OSHConnect(String name, ConfigManager configManager) {
+        this.name = name;
+        this.configManager = configManager;
+    }
+
+    /**
      * Add a node to the OSHConnect instance.
+     * <p>
+     * If a node with the same ID already exists,
+     * or if another node with the same name and root URL already exists,
+     * the node will not be added.
      *
      * @param oshNode The node to add.
      */
     public void addNode(OSHNode oshNode) {
+        if (oshNode == null)
+            return;
+
+        for (OSHNode node : oshNodes) {
+            if (node.getUniqueId().equals(oshNode.getUniqueId()))
+                return;
+            if (node.getName().equals(oshNode.getName()) && node.getSensorHubRoot().equals(oshNode.getSensorHubRoot()))
+                return;
+        }
+
         oshNodes.add(oshNode);
     }
 
     /**
      * Add a collection of nodes to the OSHConnect instance.
      *
-     * @param oshNode The nodes to add.
+     * @param oshNodes The nodes to add.
      */
-    public void addNodes(Collection<OSHNode> oshNode) {
-        this.oshNodes.addAll(oshNode);
+    public void addNodes(Collection<OSHNode> oshNodes) {
+        oshNodes.forEach(this::addNode);
     }
 
     /**
@@ -79,7 +134,7 @@ public class OSHConnect {
      *
      * @return A list of nodes.
      */
-    public Collection<OSHNode> getNodes() {
+    public List<OSHNode> getNodes() {
         return new ArrayList<>(oshNodes);
     }
 
@@ -202,5 +257,49 @@ public class OSHConnect {
     public void shutdown() {
         shutdownDatastreamHandlers();
         removeAllNodes();
+    }
+
+    /**
+     * Export the configuration data of OSHConnect to a file.
+     * The configuration data includes the name of the OSHConnect instance and all nodes added to it,
+     * but does not include the systems or datastreams discovered by the nodes.
+     * <p>
+     * By default, the configuration data is exported to a file named "config.json" in the current directory.
+     * To change the file name or location, use {@link OSHConnect#getConfigManager()} to get the {@link ConfigManager}
+     * and {@link ConfigManager#setConfigFile(File)} to set the file.
+     * <p>
+     * To modify how the configuration data is exported, implement the {@link ConfigManager} interface
+     * and {@link OSHConnect#setConfigManager(ConfigManager)} to set the custom implementation.
+     *
+     * @return The file containing the exported configuration data, or null if an error occurred.
+     */
+    public File exportConfig() {
+        try {
+            configManager.exportConfig(this);
+            return configManager.getConfigFile();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * Import the nodes from a file containing configuration data.
+     * The configuration data includes the name of the OSHConnect instance and all nodes added to it,
+     * but does not include the systems or datastreams discovered by the nodes.
+     * If there was an error importing the nodes, the OSHConnect instance will remain unchanged.
+     * <p>
+     * By default, the configuration data is imported from a file named "config.json" in the current directory.
+     * To change the file name or location, use {@link OSHConnect#getConfigManager()} to get the {@link ConfigManager}
+     * and {@link ConfigManager#setConfigFile(File)} to set the file.
+     * <p>
+     * To modify how the configuration data is imported, implement the {@link ConfigManager} interface
+     * and {@link OSHConnect#setConfigManager(ConfigManager)} to set the custom implementation.
+     */
+    public void importNodes() {
+        try {
+            configManager.importNodes(this);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

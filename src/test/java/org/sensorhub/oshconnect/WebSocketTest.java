@@ -8,6 +8,7 @@ import static org.sensorhub.oshconnect.TestConstants.USERNAME;
 import org.junit.jupiter.api.Test;
 import org.sensorhub.oshconnect.datamodels.Observation;
 import org.sensorhub.oshconnect.net.RequestFormat;
+import org.sensorhub.oshconnect.net.websocket.DatastreamEventArgs;
 import org.sensorhub.oshconnect.net.websocket.DatastreamHandler;
 import org.sensorhub.oshconnect.oshdatamodels.OSHDatastream;
 import org.sensorhub.oshconnect.oshdatamodels.OSHNode;
@@ -26,35 +27,33 @@ class WebSocketTest {
         oshConnect.addNode(oshNode);
         oshConnect.discoverSystems();
         List<OSHDatastream> datastreams = oshConnect.discoverDatastreams();
-
-        CountDownLatch latch = new CountDownLatch(datastreams.size());
-
-        DatastreamHandler handler = oshConnect.createDatastreamHandler(args -> {
-            var datastreamId = args.getDatastream().getDatastreamResource().getId();
-            var timestamp = args.getTimestamp();
-            if (args.getFormat() == RequestFormat.JSON) {
-                Observation observation = Observation.fromJson(args.getData());
-                System.out.println("onStreamUpdate: timestamp=" + timestamp + " datastreamId=" + datastreamId + " observation=" + observation);
-            } else {
-                System.out.println("onStreamUpdate: timestamp=" + timestamp + " datastreamId=" + datastreamId + " data=binary");
-            }
-        });
+        DatastreamHandler handler = oshConnect.createDatastreamHandler(this::onStreamUpdate);
 
         // Add all the discovered datastreams to the handler.
-        for (OSHDatastream datastream : datastreams) {
-            handler.addDatastream(datastream);
-        }
+        datastreams.forEach(handler::addDatastream);
 
         // Connect, listen for updates.
         handler.connect();
+        CountDownLatch latch = new CountDownLatch(datastreams.size());
         latch.await(3, TimeUnit.SECONDS);
 
         // Start listening for historical data instead of live data.
         Instant oneMinuteAgo = Instant.now().minusSeconds(60);
         handler.setTimeExtent(TimeExtent.startingAt(oneMinuteAgo));
-        handler.setReplaySpeed(0.2);
+        handler.setReplaySpeed(0.25);
         latch.await(3, TimeUnit.SECONDS);
 
         oshConnect.shutdownDatastreamHandlers();
+    }
+
+    private void onStreamUpdate(DatastreamEventArgs args) {
+        var datastreamId = args.getDatastream().getDatastreamResource().getId();
+        var timestamp = args.getTimestamp();
+        if (args.getFormat() == RequestFormat.JSON) {
+            Observation observation = Observation.fromJson(args.getData());
+            System.out.println("onStreamUpdate: timestamp=" + timestamp + " datastreamId=" + datastreamId + " observation=" + observation);
+        } else {
+            System.out.println("onStreamUpdate: timestamp=" + timestamp + " datastreamId=" + datastreamId + " data=binary");
+        }
     }
 }

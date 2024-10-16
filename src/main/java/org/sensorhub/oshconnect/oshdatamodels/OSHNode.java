@@ -1,5 +1,7 @@
 package org.sensorhub.oshconnect.oshdatamodels;
 
+import com.google.gson.Gson;
+
 import org.sensorhub.oshconnect.constants.Service;
 import org.sensorhub.oshconnect.datamodels.SystemResource;
 import org.sensorhub.oshconnect.net.APIRequest;
@@ -15,6 +17,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import lombok.Getter;
+import lombok.Setter;
 
 /**
  * Class representing an OpenSensorHub server instance or node
@@ -34,11 +37,18 @@ public class OSHNode {
      */
     private final UUID uniqueId;
     /**
+     * Friendly name for the server.
+     */
+    @Setter
+    private String name = "OSH Node";
+    /**
      * The authorization token for the server.
      */
-    private final String authorizationToken;
+    @Setter
+    private String authorizationToken;
 
-    private final Set<OSHSystem> systems = new HashSet<>();
+    @SuppressWarnings("java:S2065") // Transient warning. Gson obeys the transient keyword.
+    private final transient Set<OSHSystem> systems = new HashSet<>();
 
     public OSHNode(String sensorHubRoot, boolean isSecure) {
         this(sensorHubRoot, isSecure, null, null);
@@ -59,12 +69,7 @@ public class OSHNode {
         this.sensorHubRoot = sensorHubRoot;
         this.uniqueId = uniqueId;
         this.isSecure = isSecure;
-
-        if (username != null && password != null && !username.isEmpty() && !password.isEmpty()) {
-            authorizationToken = Base64.getEncoder().encodeToString((username + ":" + password).getBytes());
-        } else {
-            authorizationToken = null;
-        }
+        setAuthorization(username, password);
     }
 
     /**
@@ -143,5 +148,40 @@ public class OSHNode {
             datastreams.addAll(system.getDatastreams());
         }
         return datastreams;
+    }
+
+    /**
+     * Set the authorization for the node.
+     *
+     * @param username the username.
+     * @param password the password.
+     */
+    public void setAuthorization(String username, String password) {
+        if (username != null && password != null && !username.isEmpty() && !password.isEmpty()) {
+            authorizationToken = Base64.getEncoder().encodeToString((username + ":" + password).getBytes());
+        } else {
+            authorizationToken = null;
+        }
+    }
+
+    /**
+     * Get the JSON representation of this object.
+     * Note: The list of systems is not included in the JSON representation.
+     * After deserialization, the list of systems must be rediscovered.
+     *
+     * @return The JSON representation of this object.
+     */
+    public String toJson() {
+        return new Gson().toJson(this);
+    }
+
+    /**
+     * Create an OSHNode object from a JSON string.
+     *
+     * @param json The JSON string.
+     * @return The OSHNode object.
+     */
+    public static OSHNode fromJson(String json) {
+        return new Gson().fromJson(json, OSHNode.class);
     }
 }

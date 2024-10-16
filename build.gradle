@@ -13,6 +13,7 @@ dependencies {
     implementation 'com.google.code.gson:gson:2.10.1'
     implementation 'org.apache.httpcomponents:httpclient:4.5.14'
     implementation 'org.eclipse.jetty.websocket:websocket-client:9.4.56.v20240826'
+    implementation 'org.json:json:20240303'
     compileOnly 'org.projectlombok:lombok:1.18.34'
     annotationProcessor 'org.projectlombok:lombok:1.18.34'
     testImplementation platform('org.junit:junit-bom:5.10.0')
