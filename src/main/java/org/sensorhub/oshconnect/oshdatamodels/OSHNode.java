@@ -47,6 +47,8 @@ public class OSHNode {
     private String name = "OSH Node";
     /**
      * The authorization token for the server.
+     * This is a Base64 encoded string of the form "username:password".
+     * May be null if the username or password were not provided.
      */
     @Getter
     @Setter
@@ -55,10 +57,6 @@ public class OSHNode {
 
     @SuppressWarnings("java:S2065") // Transient warning. Gson obeys the transient keyword.
     private final transient Set<OSHSystem> systems = new HashSet<>();
-
-    public OSHNode(String sensorHubRoot, boolean isSecure) {
-        this(sensorHubRoot, isSecure, null, null);
-    }
 
     public OSHNode(String sensorHubRoot, boolean isSecure, String username, String password) {
         this(sensorHubRoot, isSecure, username, password, UUID.randomUUID());
@@ -73,8 +71,8 @@ public class OSHNode {
         }
 
         this.sensorHubRoot = sensorHubRoot;
-        this.uniqueId = uniqueId;
         this.isSecure = isSecure;
+        this.uniqueId = uniqueId;
         setAuthorization(username, password);
     }
 

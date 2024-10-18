@@ -12,7 +12,6 @@ import org.sensorhub.oshconnect.net.RequestFormat;
 import org.sensorhub.oshconnect.net.websocket.DatastreamEventArgs;
 import org.sensorhub.oshconnect.net.websocket.DatastreamHandler;
 import org.sensorhub.oshconnect.oshdatamodels.OSHDatastream;
-import org.sensorhub.oshconnect.oshdatamodels.OSHNode;
 import org.sensorhub.oshconnect.time.TimeExtent;
 
 import java.time.Instant;
@@ -28,9 +27,7 @@ class WebSocketTest {
     @Test
     void testConnect() throws InterruptedException {
         OSHConnect oshConnect = new OSHConnect();
-        OSHNode oshNode = new OSHNode(SENSOR_HUB_ROOT, IS_SECURE, USERNAME, PASSWORD);
-
-        oshConnect.addNode(oshNode);
+        oshConnect.createNode(SENSOR_HUB_ROOT, IS_SECURE, USERNAME, PASSWORD);
         oshConnect.discoverSystems();
         List<OSHDatastream> datastreams = oshConnect.discoverDatastreams();
         DatastreamHandler handler = oshConnect.getDatastreamManager().createDatastreamHandler(this::onStreamUpdate);

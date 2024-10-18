@@ -15,24 +15,15 @@ import org.sensorhub.oshconnect.oshdatamodels.OSHNode;
 
 import java.lang.reflect.Field;
 import java.util.Set;
-import java.util.UUID;
 
 class NotificationManagerTest {
     private OSHConnect oshConnect;
     private NotificationManager notificationManager;
-    private OSHNode node1;
-    private OSHNode node2;
-    private UUID node1Id;
 
     @BeforeEach
     void setUp() {
         oshConnect = new OSHConnect();
         notificationManager = oshConnect.getNotificationManager();
-        node1Id = UUID.randomUUID();
-        node1 = new OSHNode(SENSOR_HUB_ROOT, IS_SECURE, USERNAME, PASSWORD, node1Id);
-        node1.setName("Node 1");
-        node2 = new OSHNode(SENSOR_HUB_ROOT, IS_SECURE);
-        node2.setName("Node 2");
     }
 
     @AfterEach
@@ -57,9 +48,9 @@ class NotificationManagerTest {
         boolean[] removed = {false};
         notificationManager.addNodeNotificationListener(createNodeNotificationListener(added, removed));
 
-        oshConnect.addNode(node1);
+        OSHNode node = oshConnect.createNode(SENSOR_HUB_ROOT, IS_SECURE, USERNAME, PASSWORD);
         assertTrue(added[0]);
-        oshConnect.removeNode(node1);
+        oshConnect.getNodeManager().removeNode(node);
         assertTrue(removed[0]);
     }
 

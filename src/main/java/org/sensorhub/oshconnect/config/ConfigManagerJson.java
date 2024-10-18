@@ -46,7 +46,7 @@ public class ConfigManagerJson implements ConfigManager {
      */
     void exportConfig(OSHConnect oshConnect, Writer writer) {
         String name = oshConnect.getName();
-        List<OSHNode> nodes = oshConnect.getNodes();
+        List<OSHNode> nodes = oshConnect.getNodeManager().getNodes();
         OSHConnectConfigData configData = new OSHConnectConfigData(name, nodes);
 
         gson.toJson(configData, writer);
@@ -68,7 +68,7 @@ public class ConfigManagerJson implements ConfigManager {
     OSHConnect importConfig(Reader reader) {
         OSHConnectConfigData configData = gson.fromJson(reader, OSHConnectConfigData.class);
         OSHConnect oshConnect = new OSHConnect(configData.getName(), this);
-        oshConnect.addNodes(configData.getNodes());
+        oshConnect.getNodeManager().addNodes(configData.getNodes());
         return oshConnect;
     }
 
@@ -89,7 +89,7 @@ public class ConfigManagerJson implements ConfigManager {
      */
     void importNodes(OSHConnect oshConnect, Reader reader) {
         OSHConnectConfigData configData = gson.fromJson(reader, OSHConnectConfigData.class);
-        oshConnect.addNodes(configData.getNodes());
+        oshConnect.getNodeManager().addNodes(configData.getNodes());
     }
 
     @Override

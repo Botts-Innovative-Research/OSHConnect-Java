@@ -6,47 +6,36 @@ import org.sensorhub.oshconnect.oshdatamodels.OSHDatastream;
 import org.sensorhub.oshconnect.oshdatamodels.OSHNode;
 import org.sensorhub.oshconnect.oshdatamodels.OSHSystem;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 import lombok.Getter;
-import lombok.Setter;
 
 /**
  * OSHConnect is the main class for connecting to OpenSensorHub servers and managing datastreams.
  */
+@Getter
 public class OSHConnect {
     /**
      * The name of the OSHConnect instance.
      */
-    @Getter
     private final String name;
-    /**
-     * Nodes added to the OSHConnect instance.
-     */
-    private final Set<OSHNode> oshNodes = new HashSet<>();
-
     /**
      * The configuration manager, used to export and import configuration data.
      */
-    @Getter
-    @Setter
-    private ConfigManager configManager;
+    private final ConfigManager configManager;
+    /**
+     * The node manager, used to create and manage connections to OpenSensorHub servers.
+     */
+    private final NodeManager nodeManager;
     /**
      * The datastream manager, used to create and manage connections to datastreams.
      */
-    @Getter
-    private final DatastreamManager datastreamManager = new DatastreamManager();
+    private final DatastreamManager datastreamManager;
     /**
      * The notification manager, used to notify listeners of changes to nodes, systems, and datastreams.
      */
-    @Getter
-    private final NotificationManager notificationManager = new NotificationManager();
+    private final NotificationManager notificationManager;
 
     /**
      * Create a new OSHConnect instance.
@@ -73,141 +62,82 @@ public class OSHConnect {
     public OSHConnect(String name, ConfigManager configManager) {
         this.name = name;
         this.configManager = configManager;
+        this.datastreamManager = new DatastreamManager();
+        this.notificationManager = new NotificationManager();
+        this.nodeManager = new NodeManager(notificationManager);
     }
 
     /**
-     * Add a node to the OSHConnect instance.
+     * Create a new OSHNode instance and add it to OSHConnect.
      * <p>
-     * If a node with the same ID already exists,
-     * or if another node with the same name and root URL already exists,
-     * the node will not be added.
+     * If another node with the root URL already exists,
+     * the existing node will be returned.
      *
-     * @param oshNode The node to add.
+     * @param sensorHubRoot The root URL of the OpenSensorHub server, e.g. localhost:8181/sensorhub.
+     * @param isSecure      Flag indicating if the server is secured through TLS/SSL.
+     * @param username      The username for the server, if authentication is required.
+     * @param password      The password for the server, if authentication is required.
+     * @return The OSHNode instance.
      */
-    public void addNode(OSHNode oshNode) {
-        if (oshNode == null)
-            return;
-
-        for (OSHNode node : oshNodes) {
-            if (node.getUniqueId().equals(oshNode.getUniqueId()))
-                return;
-            if (node.getName().equals(oshNode.getName()) && node.getSensorHubRoot().equals(oshNode.getSensorHubRoot()))
-                return;
+    public OSHNode createNode(String sensorHubRoot, boolean isSecure, String username, String password) {
+        OSHNode node = new OSHNode(sensorHubRoot, isSecure, username, password);
+        if (nodeManager.addNode(node)) {
+            return node;
         }
-
-        oshNodes.add(oshNode);
-        notificationManager.notifyNodeAdded(oshNode);
+        return null;
     }
 
     /**
-     * Add a collection of nodes to the OSHConnect instance.
+     * Discover systems belonging to all OpenSensorHub nodes previously added to OSHConnect.
      *
-     * @param oshNodes The nodes to add.
-     */
-    public void addNodes(Collection<OSHNode> oshNodes) {
-        oshNodes.forEach(this::addNode);
-    }
-
-    /**
-     * Remove a node from the OSHConnect instance.
-     *
-     * @param oshNode The node to remove.
-     */
-    public void removeNode(OSHNode oshNode) {
-        if (oshNodes.remove(oshNode)) {
-            notificationManager.notifyNodeRemoved(oshNode);
-        }
-    }
-
-    /**
-     * Remove a node from the OSHConnect instance.
-     *
-     * @param nodeId The ID of the node to remove.
-     */
-    public void removeNode(UUID nodeId) {
-        removeNode(getNode(nodeId));
-    }
-
-    /**
-     * Remove all nodes from the OSHConnect instance.
-     */
-    public void removeAllNodes() {
-        new ArrayList<>(oshNodes).forEach(this::removeNode);
-    }
-
-    /**
-     * Get a list of nodes in the OSHConnect instance.
-     *
-     * @return A list of nodes.
-     */
-    public List<OSHNode> getNodes() {
-        return new ArrayList<>(oshNodes);
-    }
-
-    /**
-     * Get a node from the OSHConnect instance.
-     *
-     * @param nodeId The ID of the node to get.
-     * @return The node with the given ID, or null if no such node exists.
-     */
-    public OSHNode getNode(UUID nodeId) {
-        return oshNodes.stream()
-                .filter(node -> node.getUniqueId().equals(nodeId))
-                .findFirst()
-                .orElse(null);
-    }
-
-    /**
-     * Discover systems belonging to all OpenSensorHub nodes previously added to the OSHConnect instance.
-     *
-     * @return A list of all systems discovered by the OSHConnect instance.
+     * @return A list of all systems discovered by OSHConnect.
      */
     public List<OSHSystem> discoverSystems() {
-        oshNodes.forEach(OSHNode::discoverSystems);
+        nodeManager.getNodes().forEach(OSHNode::discoverSystems);
         return getSystems();
     }
 
     /**
-     * Discover datastreams belonging to all systems previously discovered by the OSHConnect instance.
+     * Discover datastreams belonging to all systems previously discovered by OSHConnect.
      * This method should be called after discoverSystems().
      * Note: This method may take a long time to complete if there are many systems and datastreams to discover;
      * it is recommended to call OSHSystem.discoverDataStreams() on individual systems containing the datastreams of interest.
      *
-     * @return A list of all datastreams discovered by the OSHConnect instance.
+     * @return A list of all datastreams discovered by OSHConnect.
      */
     public List<OSHDatastream> discoverDatastreams() {
-        oshNodes.forEach(OSHNode::discoverDatastreams);
+        nodeManager.getNodes().forEach(OSHNode::discoverDatastreams);
         return getDatastreams();
     }
 
     /**
-     * Get a list of all systems discovered by the OSHConnect instance.
+     * Get a list of all systems discovered by OSHConnect.
      *
      * @return The list of systems.
      */
     public List<OSHSystem> getSystems() {
-        return oshNodes.stream()
+        return nodeManager.getNodes().stream()
                 .flatMap(node -> node.getSystems().stream())
                 .collect(Collectors.toList());
     }
 
     /**
-     * Get a list of all datastreams discovered by the OSHConnect instance.
+     * Get a list of all datastreams discovered by OSHConnect.
      *
      * @return The list of datastreams.
      */
     public List<OSHDatastream> getDatastreams() {
-        return oshNodes.stream()
+        return nodeManager.getNodes().stream()
                 .flatMap(node -> node.getDatastreams().stream())
                 .collect(Collectors.toList());
     }
 
     /**
-     * Shutdown all datastream handlers and remove all nodes.
+     * Shutdown all datastreams and remove all nodes.
      */
     public void shutdown() {
         datastreamManager.shutdown();
+        nodeManager.shutdown();
         notificationManager.shutdown();
-        removeAllNodes();
     }
 }
