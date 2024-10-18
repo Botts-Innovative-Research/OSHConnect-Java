@@ -2,8 +2,6 @@ package org.sensorhub.oshconnect;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.sensorhub.oshconnect.TestConstants.IS_SECURE;
 import static org.sensorhub.oshconnect.TestConstants.PASSWORD;
 import static org.sensorhub.oshconnect.TestConstants.SENSOR_HUB_ROOT;
@@ -12,14 +10,9 @@ import static org.sensorhub.oshconnect.TestConstants.USERNAME;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.sensorhub.oshconnect.net.websocket.DatastreamEventArgs;
-import org.sensorhub.oshconnect.net.websocket.DatastreamHandler;
-import org.sensorhub.oshconnect.notification.INotificationNode;
 import org.sensorhub.oshconnect.oshdatamodels.OSHNode;
 
-import java.lang.reflect.Field;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 class OSHConnectTest {
@@ -130,116 +123,18 @@ class OSHConnectTest {
     }
 
     @Test
-    void createDatastreamHandler() {
-        oshConnect.createDatastreamHandler(args -> {
-            // Do nothing
-        });
-        assertEquals(1, oshConnect.getDatastreamHandlers().size());
-    }
-
-    @Test
-    void addDatastreamHandler() {
-        DatastreamHandler handler = new DatastreamHandler() {
-            @Override
-            public void onStreamUpdate(DatastreamEventArgs args) {
-                // Do nothing
-            }
-        };
-        assertEquals(0, oshConnect.getDatastreamHandlers().size());
-        oshConnect.addDatastreamHandler(handler);
-        assertEquals(1, oshConnect.getDatastreamHandlers().size());
-    }
-
-    @Test
-    void shutdownDatastreamHandler() {
-        DatastreamHandler handler = oshConnect.createDatastreamHandler(args -> {
-            // Do nothing
-        });
-
-        assertEquals(1, oshConnect.getDatastreamHandlers().size());
-        oshConnect.shutdownDatastreamHandler(handler);
-        assertEquals(0, oshConnect.getDatastreamHandlers().size());
-
-        assertThrows(IllegalStateException.class, handler::connect);
-    }
-
-    @Test
-    void shutdownDatastreamHandlers() {
-        oshConnect.createDatastreamHandler(args -> {
-            // Do nothing
-        });
-        oshConnect.createDatastreamHandler(args -> {
-            // Do nothing
-        });
-
-        assertEquals(2, oshConnect.getDatastreamHandlers().size());
-        oshConnect.shutdownDatastreamHandlers();
-        assertEquals(0, oshConnect.getDatastreamHandlers().size());
-    }
-
-    @Test
-    void addNodeNotificationListener() throws NoSuchFieldException, IllegalAccessException {
-        Field field = OSHConnect.class.getDeclaredField("nodeNotificationListeners");
-        field.setAccessible(true);
-        Set<?> listeners = (Set<?>) field.get(oshConnect);
-
-        assertEquals(0, listeners.size());
-        oshConnect.addNodeNotificationListener(createNodeNotificationListener(new boolean[1], new boolean[1]));
-        assertEquals(1, listeners.size());
-    }
-
-    @Test
-    void addNodeNotificationListener_Event() {
-        boolean[] added = {false};
-        boolean[] removed = {false};
-        oshConnect.addNodeNotificationListener(createNodeNotificationListener(added, removed));
-
-        oshConnect.addNode(node1);
-        assertTrue(added[0]);
-        oshConnect.removeNode(node1);
-        assertTrue(removed[0]);
-    }
-
-    @Test
-    void removeNodeNotificationListener() throws NoSuchFieldException, IllegalAccessException {
-        Field field = OSHConnect.class.getDeclaredField("nodeNotificationListeners");
-        field.setAccessible(true);
-        Set<?> listeners = (Set<?>) field.get(oshConnect);
-
-        assertEquals(0, listeners.size());
-        INotificationNode listener = createNodeNotificationListener(new boolean[1], new boolean[1]);
-        oshConnect.addNodeNotificationListener(listener);
-        assertEquals(1, listeners.size());
-        oshConnect.removeNodeNotificationListener(listener);
-        assertEquals(0, listeners.size());
-    }
-
-    @Test
     void shutdown() {
-        oshConnect.createDatastreamHandler(args -> {
+        DatastreamManager datastreamManager = oshConnect.getDatastreamManager();
+        datastreamManager.createDatastreamHandler(args -> {
             // Do nothing
         });
         oshConnect.addNode(node1);
         oshConnect.addNode(node2);
 
         assertEquals(2, oshConnect.getNodes().size());
-        assertEquals(1, oshConnect.getDatastreamHandlers().size());
+        assertEquals(1, datastreamManager.getDatastreamHandlers().size());
         oshConnect.shutdown();
         assertEquals(0, oshConnect.getNodes().size());
-        assertEquals(0, oshConnect.getDatastreamHandlers().size());
-    }
-
-    INotificationNode createNodeNotificationListener(boolean[] added, boolean[] removed) {
-        return new INotificationNode() {
-            @Override
-            public void onItemAdded(OSHNode item) {
-                added[0] = true;
-            }
-
-            @Override
-            public void onItemRemoved(OSHNode item) {
-                removed[0] = true;
-            }
-        };
+        assertEquals(0, datastreamManager.getDatastreamHandlers().size());
     }
 }
