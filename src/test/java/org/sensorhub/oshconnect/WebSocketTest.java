@@ -5,6 +5,7 @@ import static org.sensorhub.oshconnect.TestConstants.PASSWORD;
 import static org.sensorhub.oshconnect.TestConstants.SENSOR_HUB_ROOT;
 import static org.sensorhub.oshconnect.TestConstants.USERNAME;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.sensorhub.oshconnect.datamodels.Observation;
 import org.sensorhub.oshconnect.net.RequestFormat;
@@ -20,14 +21,19 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 class WebSocketTest {
+    // This test requires a live OpenSensorHub instance to connect to.
+    // Check the constants in TestConstants.java to ensure they are correct
+    // and uncomment the @Disabled annotation to run the test.
+    @Disabled
     @Test
     void testConnect() throws InterruptedException {
         OSHConnect oshConnect = new OSHConnect();
         OSHNode oshNode = new OSHNode(SENSOR_HUB_ROOT, IS_SECURE, USERNAME, PASSWORD);
+
         oshConnect.addNode(oshNode);
         oshConnect.discoverSystems();
         List<OSHDatastream> datastreams = oshConnect.discoverDatastreams();
-        DatastreamHandler handler = oshConnect.createDatastreamHandler(this::onStreamUpdate);
+        DatastreamHandler handler = oshConnect.getDatastreamManager().createDatastreamHandler(this::onStreamUpdate);
 
         // Add all the discovered datastreams to the handler.
         datastreams.forEach(handler::addDatastream);
@@ -43,7 +49,7 @@ class WebSocketTest {
         handler.setReplaySpeed(0.25);
         latch.await(3, TimeUnit.SECONDS);
 
-        oshConnect.shutdownDatastreamHandlers();
+        oshConnect.shutdown();
     }
 
     private void onStreamUpdate(DatastreamEventArgs args) {

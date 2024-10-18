@@ -1,6 +1,6 @@
 package org.sensorhub.oshconnect.net.websocket;
 
-import org.sensorhub.oshconnect.OSHConnect;
+import org.sensorhub.oshconnect.DatastreamManager;
 import org.sensorhub.oshconnect.net.RequestFormat;
 import org.sensorhub.oshconnect.oshdatamodels.OSHDatastream;
 import org.sensorhub.oshconnect.time.TimeExtent;
@@ -14,7 +14,7 @@ import lombok.Getter;
 /**
  * A handler for multiple datastreams.
  * Override the {@link #onStreamUpdate(DatastreamEventArgs)} method to receive data from the datastreams.
- * Use {@link OSHConnect#createDatastreamHandler(Consumer)} to create a new handler associated with an OSHConnect instance,
+ * Use {@link DatastreamManager#createDatastreamHandler(Consumer)} to create a new handler associated with an OSHConnect instance,
  * which will allow OSHConnect to manage the handler and shut it down when the OSHConnect instance is shut down.
  */
 public abstract class DatastreamHandler implements DatastreamEventListener {
@@ -48,7 +48,7 @@ public abstract class DatastreamHandler implements DatastreamEventListener {
     /**
      * Creates a new datastream handler.
      * To ensure this handler is associated with an OSHConnect instance,
-     * use {@link OSHConnect#createDatastreamHandler(Consumer)} to create a new handler.
+     * use {@link DatastreamManager#createDatastreamHandler(Consumer)} to create a new handler.
      * Doing so will allow OSHConnect to manage the handler,
      * and shut it down when the OSHConnect instance is shut down.
      */
