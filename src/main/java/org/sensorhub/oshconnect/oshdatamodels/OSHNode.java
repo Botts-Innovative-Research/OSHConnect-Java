@@ -8,6 +8,7 @@ import org.sensorhub.oshconnect.net.APIRequest;
 import org.sensorhub.oshconnect.net.APIResponse;
 import org.sensorhub.oshconnect.net.HttpRequestMethod;
 import org.sensorhub.oshconnect.net.Protocol;
+import org.sensorhub.oshconnect.notification.INotificationSystem;
 
 import java.util.ArrayList;
 import java.util.Base64;
@@ -22,30 +23,35 @@ import lombok.Setter;
 /**
  * Class representing an OpenSensorHub server instance or node
  */
-@Getter
 public class OSHNode {
     /**
      * The root URL of the OpenSensorHub server, i.e. localhost:8181/sensorhub
      */
+    @Getter
     private final String sensorHubRoot;
     /**
      * Flag indicating if server is secured through TLS/SSL
      */
+    @Getter
     private final boolean isSecure;
     /**
      * A unique id of the server, for configuration management.
      */
+    @Getter
     private final UUID uniqueId;
     /**
      * Friendly name for the server.
      */
+    @Getter
     @Setter
     private String name = "OSH Node";
     /**
      * The authorization token for the server.
      */
+    @Getter
     @Setter
     private String authorizationToken;
+    private final Set<INotificationSystem> systemNotificationListeners = new HashSet<>();
 
     @SuppressWarnings("java:S2065") // Transient warning. Gson obeys the transient keyword.
     private final transient Set<OSHSystem> systems = new HashSet<>();
@@ -90,7 +96,9 @@ public class OSHNode {
 
         for (SystemResource systemResource : systemResources) {
             if (systems.stream().noneMatch(s -> s.getId().equals(systemResource.getId()))) {
-                systems.add(new OSHSystem(systemResource, this));
+                OSHSystem system = new OSHSystem(systemResource, this);
+                systems.add(system);
+                notifySystemAdded(system);
             }
         }
 
@@ -183,5 +191,45 @@ public class OSHNode {
      */
     public static OSHNode fromJson(String json) {
         return new Gson().fromJson(json, OSHNode.class);
+    }
+
+    /**
+     * Add a system notification listener.
+     *
+     * @param listener The listener.
+     */
+    public void addSystemNotificationListener(INotificationSystem listener) {
+        systemNotificationListeners.add(listener);
+    }
+
+    /**
+     * Remove a system notification listener.
+     *
+     * @param listener The listener.
+     */
+    public void removeSystemNotificationListener(INotificationSystem listener) {
+        systemNotificationListeners.remove(listener);
+    }
+
+    /**
+     * Notify listeners that a system has been added.
+     *
+     * @param system The system.
+     */
+    private void notifySystemAdded(OSHSystem system) {
+        for (INotificationSystem listener : systemNotificationListeners) {
+            listener.onItemAdded(system);
+        }
+    }
+
+    /**
+     * Notify listeners that a system has been removed.
+     *
+     * @param system The system.
+     */
+    private void notifySystemRemoved(OSHSystem system) {
+        for (INotificationSystem listener : systemNotificationListeners) {
+            listener.onItemRemoved(system);
+        }
     }
 }

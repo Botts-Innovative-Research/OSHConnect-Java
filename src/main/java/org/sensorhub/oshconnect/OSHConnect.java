@@ -4,15 +4,19 @@ import org.sensorhub.oshconnect.config.ConfigManager;
 import org.sensorhub.oshconnect.config.ConfigManagerJson;
 import org.sensorhub.oshconnect.net.websocket.DatastreamEventArgs;
 import org.sensorhub.oshconnect.net.websocket.DatastreamHandler;
+import org.sensorhub.oshconnect.notification.INotificationDatastream;
+import org.sensorhub.oshconnect.notification.INotificationNode;
+import org.sensorhub.oshconnect.notification.INotificationSystem;
 import org.sensorhub.oshconnect.oshdatamodels.OSHDatastream;
 import org.sensorhub.oshconnect.oshdatamodels.OSHNode;
 import org.sensorhub.oshconnect.oshdatamodels.OSHSystem;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -37,6 +41,11 @@ public class OSHConnect {
      * Datastream handlers added to the OSHConnect instance.
      */
     private final Set<DatastreamHandler> datastreamHandlers = new HashSet<>();
+    private final Set<INotificationNode> nodeNotificationListeners = new HashSet<>();
+    private final Set<INotificationSystem> systemNotificationListeners = new HashSet<>();
+    private final Set<INotificationDatastream> datastreamNotificationListeners = new HashSet<>();
+    private final Map<OSHNode, INotificationSystem> systemNotificationListenersInternal = new HashMap<>();
+    private final Map<OSHSystem, INotificationDatastream> datastreamNotificationListenersInternal = new HashMap<>();
 
     /**
      * The configuration manager used to export and import configuration data.
@@ -93,6 +102,7 @@ public class OSHConnect {
         }
 
         oshNodes.add(oshNode);
+        notifyNodeAdded(oshNode);
     }
 
     /**
@@ -107,26 +117,29 @@ public class OSHConnect {
     /**
      * Remove a node from the OSHConnect instance.
      *
-     * @param nodeId The ID of the node to remove.
+     * @param oshNode The node to remove.
      */
-    public void removeNode(UUID nodeId) {
-        oshNodes.removeIf(node -> node.getUniqueId().equals(nodeId));
+    public void removeNode(OSHNode oshNode) {
+        if (oshNodes.remove(oshNode)) {
+            notifyNodeRemoved(oshNode);
+        }
     }
 
     /**
      * Remove a node from the OSHConnect instance.
      *
-     * @param oshNode The node to remove.
+     * @param nodeId The ID of the node to remove.
      */
-    public void removeNode(OSHNode oshNode) {
-        oshNodes.remove(oshNode);
+    public void removeNode(UUID nodeId) {
+        removeNode(getNode(nodeId));
     }
 
     /**
      * Remove all nodes from the OSHConnect instance.
      */
     public void removeAllNodes() {
-        oshNodes.clear();
+        List<OSHNode> nodesToRemove = getNodes();
+        nodesToRemove.forEach(this::removeNode);
     }
 
     /**
@@ -260,46 +273,173 @@ public class OSHConnect {
     }
 
     /**
-     * Export the configuration data of OSHConnect to a file.
-     * The configuration data includes the name of the OSHConnect instance and all nodes added to it,
-     * but does not include the systems or datastreams discovered by the nodes.
-     * <p>
-     * By default, the configuration data is exported to a file named "config.json" in the current directory.
-     * To change the file name or location, use {@link OSHConnect#getConfigManager()} to get the {@link ConfigManager}
-     * and {@link ConfigManager#setConfigFile(File)} to set the file.
-     * <p>
-     * To modify how the configuration data is exported, implement the {@link ConfigManager} interface
-     * and {@link OSHConnect#setConfigManager(ConfigManager)} to set the custom implementation.
+     * Create a system notification listener, to be used when a node is added to OSHConnect.
      *
-     * @return The file containing the exported configuration data, or null if an error occurred.
+     * @return The system notification listener.
      */
-    public File exportConfig() {
-        try {
-            configManager.exportConfig(this);
-            return configManager.getConfigFile();
-        } catch (Exception e) {
-            return null;
+    private INotificationSystem createSystemNotificationListener() {
+        return new INotificationSystem() {
+            @Override
+            public void onItemAdded(OSHSystem item) {
+                notifySystemAdded(item);
+            }
+
+            @Override
+            public void onItemRemoved(OSHSystem item) {
+                notifySystemRemoved(item);
+            }
+        };
+    }
+
+    /**
+     * Create a datastream notification listener, to be used when a system is added to OSHConnect.
+     *
+     * @return The datastream notification listener.
+     */
+    private INotificationDatastream createDatastreamNotificationListener() {
+        return new INotificationDatastream() {
+            @Override
+            public void onItemAdded(OSHDatastream item) {
+                notifyDatastreamAdded(item);
+            }
+
+            @Override
+            public void onItemRemoved(OSHDatastream item) {
+                notifyDatastreamRemoved(item);
+            }
+        };
+    }
+
+    /**
+     * Add a node notification listener.
+     * Listeners are notified when a node is added or removed from OSHConnect.
+     *
+     * @param listener The listener.
+     */
+    public void addNodeNotificationListener(INotificationNode listener) {
+        nodeNotificationListeners.add(listener);
+    }
+
+    /**
+     * Remove a node notification listener.
+     *
+     * @param listener The listener.
+     */
+    public void removeNodeNotificationListener(INotificationNode listener) {
+        nodeNotificationListeners.remove(listener);
+    }
+
+    /**
+     * Add a system notification listener.
+     * Listeners are notified when a system is added or removed from OSHConnect, for any node.
+     *
+     * @param listener The listener.
+     */
+    public void addSystemNotificationListener(INotificationSystem listener) {
+        systemNotificationListeners.add(listener);
+    }
+
+    /**
+     * Remove a system notification listener.
+     *
+     * @param listener The listener.
+     */
+    public void removeSystemNotificationListener(INotificationSystem listener) {
+        systemNotificationListeners.remove(listener);
+    }
+
+    /**
+     * Add a datastream notification listener.
+     * Listeners are notified when a datastream is added or removed from OSHConnect, for any system.
+     *
+     * @param listener The listener.
+     */
+    public void addDatastreamNotificationListener(INotificationDatastream listener) {
+        datastreamNotificationListeners.add(listener);
+    }
+
+    /**
+     * Remove a datastream notification listener.
+     *
+     * @param listener The listener.
+     */
+    public void removeDatastreamNotificationListener(INotificationDatastream listener) {
+        datastreamNotificationListeners.remove(listener);
+    }
+
+    /**
+     * Notify listeners that a node has been added.
+     * Subscribe to system notifications for the node.
+     *
+     * @param node The node.
+     */
+    private void notifyNodeAdded(OSHNode node) {
+        nodeNotificationListeners.forEach(listener -> listener.onItemAdded(node));
+
+        INotificationSystem systemListener = createSystemNotificationListener();
+        node.addSystemNotificationListener(systemListener);
+        systemNotificationListenersInternal.put(node, systemListener);
+    }
+
+    /**
+     * Notify listeners that a node has been removed.
+     * Unsubscribe from system notifications for the node.
+     *
+     * @param node The node.
+     */
+    private void notifyNodeRemoved(OSHNode node) {
+        nodeNotificationListeners.forEach(listener -> listener.onItemRemoved(node));
+
+        INotificationSystem systemListener = systemNotificationListenersInternal.remove(node);
+        if (systemListener != null) {
+            node.removeSystemNotificationListener(systemListener);
         }
     }
 
     /**
-     * Import the nodes from a file containing configuration data.
-     * The configuration data includes the name of the OSHConnect instance and all nodes added to it,
-     * but does not include the systems or datastreams discovered by the nodes.
-     * If there was an error importing the nodes, the OSHConnect instance will remain unchanged.
-     * <p>
-     * By default, the configuration data is imported from a file named "config.json" in the current directory.
-     * To change the file name or location, use {@link OSHConnect#getConfigManager()} to get the {@link ConfigManager}
-     * and {@link ConfigManager#setConfigFile(File)} to set the file.
-     * <p>
-     * To modify how the configuration data is imported, implement the {@link ConfigManager} interface
-     * and {@link OSHConnect#setConfigManager(ConfigManager)} to set the custom implementation.
+     * Notify listeners that a system has been added.
+     * Subscribe to datastream notifications for the system.
+     *
+     * @param system The system.
      */
-    public void importNodes() {
-        try {
-            configManager.importNodes(this);
-        } catch (Exception e) {
-            e.printStackTrace();
+    private void notifySystemAdded(OSHSystem system) {
+        systemNotificationListeners.forEach(listener -> listener.onItemAdded(system));
+
+        INotificationDatastream datastreamListener = createDatastreamNotificationListener();
+        system.addDatastreamNotificationListener(datastreamListener);
+        datastreamNotificationListenersInternal.put(system, datastreamListener);
+    }
+
+    /**
+     * Notify listeners that a system has been removed.
+     * Unsubscribe from datastream notifications for the system.
+     *
+     * @param system The system.
+     */
+    private void notifySystemRemoved(OSHSystem system) {
+        systemNotificationListeners.forEach(listener -> listener.onItemRemoved(system));
+
+        INotificationDatastream datastreamListener = datastreamNotificationListenersInternal.remove(system);
+        if (datastreamListener != null) {
+            system.removeDatastreamNotificationListener(datastreamListener);
         }
+    }
+
+    /**
+     * Notify listeners that a datastream has been added.
+     *
+     * @param datastream The datastream.
+     */
+    private void notifyDatastreamAdded(OSHDatastream datastream) {
+        datastreamNotificationListeners.forEach(listener -> listener.onItemAdded(datastream));
+    }
+
+    /**
+     * Notify listeners that a datastream has been removed.
+     *
+     * @param datastream The datastream.
+     */
+    private void notifyDatastreamRemoved(OSHDatastream datastream) {
+        datastreamNotificationListeners.forEach(listener -> listener.onItemRemoved(datastream));
     }
 }
