@@ -54,9 +54,7 @@ public class OSHNode {
     @Setter
     private String authorizationToken;
     private final Set<INotificationSystem> systemNotificationListeners = new HashSet<>();
-
-    @SuppressWarnings("java:S2065") // Transient warning. Gson obeys the transient keyword.
-    private final transient Set<OSHSystem> systems = new HashSet<>();
+    private final Set<OSHSystem> systems = new HashSet<>();
 
     public OSHNode(String sensorHubRoot, boolean isSecure, String username, String password) {
         this(sensorHubRoot, isSecure, username, password, UUID.randomUUID());

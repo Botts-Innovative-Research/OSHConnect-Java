@@ -8,7 +8,7 @@ import static org.sensorhub.oshconnect.TestConstants.PASSWORD;
 import static org.sensorhub.oshconnect.TestConstants.SENSOR_HUB_ROOT;
 import static org.sensorhub.oshconnect.TestConstants.USERNAME;
 
-import org.json.JSONObject;
+import org.json.JSONArray;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,13 +22,14 @@ import java.util.UUID;
 
 class ConfigManagerJsonTest {
     private OSHConnect oshConnect;
-    ConfigManagerJson configManagerJson;
+    private ConfigManagerJson configManagerJson;
     private NodeManager nodeManager;
 
     @BeforeEach
     void setUp() {
-        configManagerJson = new ConfigManagerJson();
-        oshConnect = new OSHConnect(OSH_CONNECT_NAME, configManagerJson);
+        oshConnect = new OSHConnect(OSH_CONNECT_NAME);
+        configManagerJson = new ConfigManagerJson(oshConnect);
+        oshConnect.setConfigManager(configManagerJson);
         nodeManager = oshConnect.getNodeManager();
     }
 
@@ -43,13 +44,11 @@ class ConfigManagerJsonTest {
         node.setName("Node 1");
 
         try (StringWriter writer = new StringWriter()) {
-            configManagerJson.exportConfig(oshConnect, writer);
+            configManagerJson.exportConfig(writer);
             assert !writer.toString().isEmpty();
 
-            JSONObject jsonObject = new JSONObject(writer.toString());
-            assertEquals(OSH_CONNECT_NAME, jsonObject.getString("name"));
-            assertEquals(1, jsonObject.getJSONArray("nodes").length());
-            assertEquals("Node 1", jsonObject.getJSONArray("nodes").getJSONObject(0).getString("name"));
+            JSONArray jsonArray = new JSONArray(writer.toString());
+            assertEquals(1, jsonArray.length());
         } catch (Exception e) {
             fail("Exception thrown: " + e);
         }
@@ -57,33 +56,15 @@ class ConfigManagerJsonTest {
 
     @Test
     void importConfig() {
-        oshConnect.createNode(SENSOR_HUB_ROOT, IS_SECURE, USERNAME, PASSWORD);
-
-        try (StringWriter writer = new StringWriter()) {
-            configManagerJson.exportConfig(oshConnect, writer);
-            StringReader reader = new StringReader(writer.toString());
-
-            OSHConnect importedOshConnect = configManagerJson.importConfig(reader);
-
-            assertEquals(OSH_CONNECT_NAME, importedOshConnect.getName());
-            assertEquals(1, importedOshConnect.getNodeManager().getNodes().size());
-            reader.close();
-        } catch (Exception e) {
-            fail("Exception thrown: " + e);
-        }
-    }
-
-    @Test
-    void importNodes() {
         OSHNode node = oshConnect.createNode(SENSOR_HUB_ROOT, IS_SECURE, USERNAME, PASSWORD);
         UUID uniqueId = node.getUniqueId();
 
         try (StringWriter writer = new StringWriter()) {
-            configManagerJson.exportConfig(oshConnect, writer);
+            configManagerJson.exportConfig(writer);
             nodeManager.removeAllNodes();
 
             StringReader reader = new StringReader(writer.toString());
-            configManagerJson.importNodes(oshConnect, reader);
+            configManagerJson.importConfig(reader);
             assertEquals(1, nodeManager.getNodes().size());
             assertEquals(uniqueId, nodeManager.getNodes().get(0).getUniqueId());
             reader.close();
@@ -98,10 +79,10 @@ class ConfigManagerJsonTest {
         assertEquals(1, nodeManager.getNodes().size());
 
         try (StringWriter writer = new StringWriter()) {
-            configManagerJson.exportConfig(oshConnect, writer);
+            configManagerJson.exportConfig(writer);
 
             StringReader reader = new StringReader(writer.toString());
-            configManagerJson.importNodes(oshConnect, reader);
+            configManagerJson.importConfig(reader);
             assertEquals(1, nodeManager.getNodes().size());
             reader.close();
         } catch (Exception e) {

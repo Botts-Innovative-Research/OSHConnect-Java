@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import lombok.Getter;
+import lombok.Setter;
 
 /**
  * OSHConnect is the main class for connecting to OpenSensorHub servers and managing datastreams.
@@ -23,7 +24,8 @@ public class OSHConnect {
     /**
      * The configuration manager, used to export and import configuration data.
      */
-    private final ConfigManager configManager;
+    @Setter
+    private ConfigManager configManager = new ConfigManagerJson(this);
     /**
      * The node manager, used to create and manage connections to OpenSensorHub servers.
      */
@@ -50,18 +52,7 @@ public class OSHConnect {
      * @param name The name of the OSHConnect instance.
      */
     public OSHConnect(String name) {
-        this(name, new ConfigManagerJson());
-    }
-
-    /**
-     * Create a new OSHConnect instance with the given name and configuration manager.
-     *
-     * @param name          The name of the OSHConnect instance.
-     * @param configManager The configuration manager to use.
-     */
-    public OSHConnect(String name, ConfigManager configManager) {
         this.name = name;
-        this.configManager = configManager;
         this.datastreamManager = new DatastreamManager();
         this.notificationManager = new NotificationManager();
         this.nodeManager = new NodeManager(notificationManager);
