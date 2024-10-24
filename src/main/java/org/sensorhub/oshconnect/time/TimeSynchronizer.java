@@ -93,14 +93,14 @@ public class TimeSynchronizer<T> {
      * If time synchronization is disabled, the event is processed immediately.
      *
      * @param timestamp The timestamp of the event.
-     * @param event     The event to be added.
+     * @param args      The event arguments to pass to the consumer.
      */
-    public void addEvent(long timestamp, T event) {
+    public void addEvent(long timestamp, T args) {
         if (timeSynchronizationEnabled) {
-            TimeSynchronizerEvent<T> timeSynchronizerEvent = new TimeSynchronizerEvent<>(timestamp, event);
+            TimeSynchronizerEvent<T> timeSynchronizerEvent = new TimeSynchronizerEvent<>(timestamp, args);
             receivedEvents.add(timeSynchronizerEvent);
         } else {
-            eventConsumer.accept(event);
+            eventConsumer.accept(args);
         }
     }
 
