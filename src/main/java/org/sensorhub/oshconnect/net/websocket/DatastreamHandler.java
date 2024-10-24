@@ -20,6 +20,7 @@ import lombok.Getter;
  */
 public abstract class DatastreamHandler implements DatastreamEventListener {
     private final List<DatastreamListener> datastreamListeners = new ArrayList<>();
+    @Getter
     private final TimeSynchronizer<DatastreamEventArgs> timeSynchronizer;
 
     /**
@@ -199,13 +200,5 @@ public abstract class DatastreamHandler implements DatastreamEventListener {
         for (DatastreamListener listener : datastreamListeners) {
             listener.setTimeExtent(timeExtent);
         }
-    }
-
-    public void enableTimeSynchronization() {
-        timeSynchronizer.enableTimeSynchronization();
-    }
-
-    public void disableTimeSynchronization(boolean discardBuffer) {
-        timeSynchronizer.disableTimeSynchronization(discardBuffer);
     }
 }

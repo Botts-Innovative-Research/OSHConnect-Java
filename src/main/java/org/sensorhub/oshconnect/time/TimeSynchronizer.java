@@ -11,6 +11,20 @@ import java.util.function.Consumer;
 import lombok.Getter;
 import lombok.Setter;
 
+/**
+ * This class can be used in scenarios where events may be received out of order,
+ * for example due to network latency or other delays.
+ * Events will be held in a buffer for a specified time period,
+ * then served both in order and with respect to their timestamps.
+ * <p>
+ * The time synchronization can be enabled or disabled at any time.
+ * When disabled, events will be triggered immediately instead of being buffered,
+ * making it possible to switch between real-time and synchronized processing without separate code paths.
+ * Add an event using the {@link #addEvent(long, Object)} method and it will be either buffered and processed later
+ * or fired immediately depending on whether time synchronization is enabled.
+ *
+ * @param <T> The type of the event.
+ */
 public class TimeSynchronizer<T> {
     private static final int TIME_BETWEEN_UPDATES_MS = 10;
     private final List<TimeSynchronizerEvent<T>> receivedEvents = new ArrayList<>();
@@ -18,22 +32,40 @@ public class TimeSynchronizer<T> {
     private ScheduledExecutorService executorService;
     private boolean timeSynchronizationEnabled;
     private long lastUpdateTimestamp;
+    /**
+     * The time in milliseconds to buffer events for time synchronization.
+     */
     @Getter
-    @Setter
     private int bufferTimeMS = 1000;
+    /**
+     * When time synchronization is enabled, events with a timestamp outside the buffer time will be discarded.
+     * True by default.
+     */
     @Getter
     @Setter
     private boolean discardOutdatedEvents = true;
+    /**
+     * Whether to discard any buffered events when time synchronization is turned off or when resetting.
+     */
+    @Getter
+    @Setter
+    private boolean discardBuffer = true;
 
+    /**
+     * @param eventConsumer A Consumer that processes events.
+     *                      This is called when an event is ready to be processed,
+     *                      either immediately if time synchronization is disabled,
+     *                      or after time synchronization.
+     */
     public TimeSynchronizer(Consumer<T> eventConsumer) {
         this.eventConsumer = eventConsumer;
     }
 
+    /**
+     * Enables time synchronization.
+     * Events will be buffered for the specified buffer time.
+     */
     public void enableTimeSynchronization() {
-        if (bufferTimeMS <= 0) {
-            throw new IllegalArgumentException("Buffer time must be greater than 0.");
-        }
-
         this.timeSynchronizationEnabled = true;
 
         if (executorService == null || executorService.isShutdown()) {
@@ -42,21 +74,27 @@ public class TimeSynchronizer<T> {
         executorService.scheduleWithFixedDelay(this::processBufferedEvents, 0, TIME_BETWEEN_UPDATES_MS, TimeUnit.MILLISECONDS);
     }
 
-    public void disableTimeSynchronization(boolean discardBuffer) {
+    /**
+     * Disables time synchronization.
+     * Further events will be processed immediately.
+     */
+    public void disableTimeSynchronization() {
         this.timeSynchronizationEnabled = false;
 
         if (executorService != null) {
             executorService.shutdown();
         }
 
-        if (!discardBuffer) {
-            for (TimeSynchronizerEvent<T> event : receivedEvents) {
-                eventConsumer.accept(event.getEvent());
-            }
-        }
-        receivedEvents.clear();
+        clearBuffer();
     }
 
+    /**
+     * Adds an event to the buffer.
+     * If time synchronization is disabled, the event is processed immediately.
+     *
+     * @param timestamp The timestamp of the event.
+     * @param event     The event to be added.
+     */
     public void addEvent(long timestamp, T event) {
         if (timeSynchronizationEnabled) {
             TimeSynchronizerEvent<T> timeSynchronizerEvent = new TimeSynchronizerEvent<>(timestamp, event);
@@ -66,6 +104,10 @@ public class TimeSynchronizer<T> {
         }
     }
 
+    /**
+     * Processes buffered events based on their timestamps.
+     * Events that are outside the buffer time will be discarded if discardOutdatedEvents is true.
+     */
     private void processBufferedEvents() {
         if (!timeSynchronizationEnabled || receivedEvents.isEmpty()) return;
 
@@ -83,7 +125,6 @@ public class TimeSynchronizer<T> {
 
         for (TimeSynchronizerEvent<T> timeSynchronizerEvent : toServe) {
             if (discardOutdatedEvents && timeSynchronizerEvent.getTimestamp() < lastUpdateTimestamp) {
-                System.out.println("Discarding outdated event: " + timeSynchronizerEvent.getTimestamp());
                 receivedEvents.remove(timeSynchronizerEvent);
                 continue;
             }
@@ -92,5 +133,32 @@ public class TimeSynchronizer<T> {
             receivedEvents.remove(timeSynchronizerEvent);
             lastUpdateTimestamp = timeSynchronizerEvent.getTimestamp();
         }
+    }
+
+    /**
+     * Clears the buffer and processes any remaining events.
+     */
+    private void clearBuffer() {
+        if (!discardBuffer) {
+            receivedEvents.sort(Comparator.comparingLong(TimeSynchronizerEvent::getTimestamp));
+            for (TimeSynchronizerEvent<T> event : receivedEvents) {
+                eventConsumer.accept(event.getEvent());
+            }
+        }
+        receivedEvents.clear();
+    }
+
+    /**
+     * Sets the buffer time in milliseconds.
+     *
+     * @param bufferTimeMS The buffer time in milliseconds.
+     *                     For best results, this should be greater than the expected network latency.
+     * @throws IllegalArgumentException if bufferTimeMS is less than or equal to 0.
+     */
+    private void setBufferTimeMS(int bufferTimeMS) {
+        if (bufferTimeMS <= 0) {
+            throw new IllegalArgumentException("Buffer time must be greater than 0");
+        }
+        this.bufferTimeMS = bufferTimeMS;
     }
 }
