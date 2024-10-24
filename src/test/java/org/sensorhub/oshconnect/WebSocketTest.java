@@ -5,10 +5,7 @@ import static org.sensorhub.oshconnect.TestConstants.PASSWORD;
 import static org.sensorhub.oshconnect.TestConstants.SENSOR_HUB_ROOT;
 import static org.sensorhub.oshconnect.TestConstants.USERNAME;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.sensorhub.oshconnect.datamodels.Observation;
-import org.sensorhub.oshconnect.net.RequestFormat;
 import org.sensorhub.oshconnect.net.websocket.DatastreamEventArgs;
 import org.sensorhub.oshconnect.net.websocket.DatastreamHandler;
 import org.sensorhub.oshconnect.oshdatamodels.OSHDatastream;
@@ -20,10 +17,12 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 class WebSocketTest {
+    long previousTimestamp;
+
     // This test requires a live OpenSensorHub instance to connect to.
     // Check the constants in TestConstants.java to ensure they are correct
     // and uncomment the @Disabled annotation to run the test.
-    @Disabled
+//    @Disabled
     @Test
     void testConnect() throws InterruptedException {
         OSHConnect oshConnect = new OSHConnect();
@@ -40,7 +39,13 @@ class WebSocketTest {
         CountDownLatch latch = new CountDownLatch(datastreams.size());
         latch.await(3, TimeUnit.SECONDS);
 
+        // Enable time synchronization
+        System.out.println("Enabling time synchronization...");
+        handler.getTimeSynchronizer().enableTimeSynchronization();
+        latch.await(3, TimeUnit.SECONDS);
+
         // Start listening for historical data instead of live data.
+        System.out.println("Starting historical data...");
         Instant oneMinuteAgo = Instant.now().minusSeconds(60);
         handler.setTimeExtent(TimeExtent.startingAt(oneMinuteAgo));
         handler.setReplaySpeed(0.25);
@@ -52,11 +57,12 @@ class WebSocketTest {
     private void onStreamUpdate(DatastreamEventArgs args) {
         var datastreamId = args.getDatastream().getDatastreamResource().getId();
         var timestamp = args.getTimestamp();
-        if (args.getFormat() == RequestFormat.JSON) {
-            Observation observation = Observation.fromJson(args.getData());
-            System.out.println("onStreamUpdate: timestamp=" + timestamp + " datastreamId=" + datastreamId + " observation=" + observation);
-        } else {
-            System.out.println("onStreamUpdate: timestamp=" + timestamp + " datastreamId=" + datastreamId + " data=binary");
+
+        String message = String.format("onStreamUpdate: timestamp=%s datastreamId=%s", timestamp, datastreamId);
+        if (timestamp < previousTimestamp) {
+            message += " (out of order)";
         }
+        System.out.println(message);
+        previousTimestamp = timestamp;
     }
 }
