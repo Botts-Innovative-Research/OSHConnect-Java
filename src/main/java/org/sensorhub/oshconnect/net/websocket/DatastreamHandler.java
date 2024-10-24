@@ -4,6 +4,7 @@ import org.sensorhub.oshconnect.DatastreamManager;
 import org.sensorhub.oshconnect.net.RequestFormat;
 import org.sensorhub.oshconnect.oshdatamodels.OSHDatastream;
 import org.sensorhub.oshconnect.time.TimeExtent;
+import org.sensorhub.oshconnect.time.TimeSynchronizer;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,6 +20,8 @@ import lombok.Getter;
  */
 public abstract class DatastreamHandler implements DatastreamEventListener {
     private final List<DatastreamListener> datastreamListeners = new ArrayList<>();
+    private final TimeSynchronizer<DatastreamEventArgs> timeSynchronizer;
+
     /**
      * The format of the request.
      * If null, the format will not be specified in the request, i.e. the data will be received in the default format.
@@ -53,18 +56,7 @@ public abstract class DatastreamHandler implements DatastreamEventListener {
      * and shut it down when the OSHConnect instance is shut down.
      */
     protected DatastreamHandler() {
-    }
-
-    /**
-     * Creates a new datastream listener for the specified datastream.
-     */
-    private DatastreamListener createDatastreamListener(OSHDatastream datastream, DatastreamHandler handler) {
-        return new DatastreamListener(datastream) {
-            @Override
-            public void onStreamUpdate(DatastreamEventArgs args) {
-                handler.onStreamUpdate(args);
-            }
-        };
+        this.timeSynchronizer = new TimeSynchronizer<>(this::onStreamUpdate);
     }
 
     /**
@@ -75,8 +67,11 @@ public abstract class DatastreamHandler implements DatastreamEventListener {
             throw new IllegalStateException("Handler has been shut down.");
         }
 
-        removeInactiveDatastreams();
-        datastreamListeners.forEach(DatastreamListener::connect);
+        for (DatastreamListener listener : datastreamListeners) {
+            if (listener.getStatus() != StreamStatus.SHUTDOWN) {
+                listener.connect();
+            }
+        }
         status = StreamStatus.CONNECTED;
     }
 
@@ -94,8 +89,7 @@ public abstract class DatastreamHandler implements DatastreamEventListener {
      * The handler will no longer be usable after this method is called.
      */
     public void shutdown() {
-        datastreamListeners.forEach(DatastreamListener::shutdown);
-        datastreamListeners.clear();
+        shutdownAllDatastreams();
         status = StreamStatus.SHUTDOWN;
     }
 
@@ -111,7 +105,13 @@ public abstract class DatastreamHandler implements DatastreamEventListener {
             return;
         }
 
-        DatastreamListener listener = createDatastreamListener(datastream, this);
+        DatastreamListener listener = new DatastreamListener(datastream) {
+            @Override
+            public void onStreamUpdate(DatastreamEventArgs args) {
+                timeSynchronizer.addEvent(args.getTimestamp(), args);
+            }
+        };
+
         listener.setRequestFormat(requestFormat);
         listener.setReplaySpeed(replaySpeed);
         listener.setTimeExtent(timeExtent);
@@ -139,7 +139,7 @@ public abstract class DatastreamHandler implements DatastreamEventListener {
     }
 
     /**
-     * Disconnects from all datastreams and removes them from the handler.
+     * Shuts down all datastreams and removes them from the handler.
      */
     public void shutdownAllDatastreams() {
         datastreamListeners.forEach(DatastreamListener::disconnect);
@@ -147,17 +147,9 @@ public abstract class DatastreamHandler implements DatastreamEventListener {
     }
 
     /**
-     * Removes datastreams that have been shut down.
-     */
-    private void removeInactiveDatastreams() {
-        datastreamListeners.removeIf(listener -> listener.getStatus() == StreamStatus.SHUTDOWN);
-    }
-
-    /**
      * Get a list of datastreams in the handler.
      */
     public List<OSHDatastream> getDatastreams() {
-        removeInactiveDatastreams();
         List<OSHDatastream> datastreams = new ArrayList<>();
         datastreamListeners.forEach(listener -> datastreams.add(listener.getDatastream()));
         return datastreams;
@@ -207,5 +199,13 @@ public abstract class DatastreamHandler implements DatastreamEventListener {
         for (DatastreamListener listener : datastreamListeners) {
             listener.setTimeExtent(timeExtent);
         }
+    }
+
+    public void enableTimeSynchronization() {
+        timeSynchronizer.enableTimeSynchronization();
+    }
+
+    public void disableTimeSynchronization(boolean discardBuffer) {
+        timeSynchronizer.disableTimeSynchronization(discardBuffer);
     }
 }

@@ -4,10 +4,10 @@ import org.json.JSONObject;
 import org.sensorhub.oshconnect.net.RequestFormat;
 import org.sensorhub.oshconnect.oshdatamodels.OSHDatastream;
 import org.sensorhub.oshconnect.time.TimeExtent;
-import org.sensorhub.oshconnect.time.TimeUtils;
 
 import java.nio.ByteBuffer;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -190,14 +190,11 @@ public abstract class DatastreamListener implements DatastreamEventListener {
             String[] parts = text.split(",");
             return Instant.parse(parts[0]).toEpochMilli();
         } else if (format == RequestFormat.SWE_BINARY) {
-            ByteBuffer buffer = ByteBuffer.wrap(data);
-
-            // In order to get timestamps from binary data we need to
-            // extract first 8 bytes as a double,
-            // then need to ensure we are getting UTC offset time,
-            // otherwise timestamps will offset to UTC time.
-            // Other timestamps already convert properly, so we don't have to do anything to them.
-            return TimeUtils.epochTimeToUtc(buffer.getDouble());
+            // Get the timestamp from the first 8 bytes of the binary data
+            byte[] timestampBytes = Arrays.copyOfRange(data, 0, 8);
+            ByteBuffer buffer = ByteBuffer.wrap(timestampBytes);
+            double timestampDouble = buffer.getDouble();
+            return (long) (timestampDouble * 1000);
         }
 
         return -1;
