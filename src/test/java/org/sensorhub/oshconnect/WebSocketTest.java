@@ -5,6 +5,7 @@ import static org.sensorhub.oshconnect.TestConstants.PASSWORD;
 import static org.sensorhub.oshconnect.TestConstants.SENSOR_HUB_ROOT;
 import static org.sensorhub.oshconnect.TestConstants.USERNAME;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.sensorhub.oshconnect.net.websocket.DatastreamEventArgs;
 import org.sensorhub.oshconnect.net.websocket.DatastreamHandler;
@@ -22,7 +23,7 @@ class WebSocketTest {
     // This test requires a live OpenSensorHub instance to connect to.
     // Check the constants in TestConstants.java to ensure they are correct
     // and uncomment the @Disabled annotation to run the test.
-//    @Disabled
+    @Disabled
     @Test
     void testConnect() throws InterruptedException {
         OSHConnect oshConnect = new OSHConnect();
