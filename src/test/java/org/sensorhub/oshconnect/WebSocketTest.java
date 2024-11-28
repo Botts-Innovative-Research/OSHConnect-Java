@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.sensorhub.oshconnect.net.websocket.DatastreamEventArgs;
 import org.sensorhub.oshconnect.net.websocket.DatastreamHandler;
 import org.sensorhub.oshconnect.oshdatamodels.OSHDatastream;
-import org.sensorhub.oshconnect.time.TimeExtent;
+import org.vast.util.TimeExtent;
 
 import java.time.Instant;
 import java.util.List;
@@ -48,7 +48,7 @@ class WebSocketTest {
         // Start listening for historical data instead of live data.
         System.out.println("Starting historical data...");
         Instant oneMinuteAgo = Instant.now().minusSeconds(60);
-        handler.setTimeExtent(TimeExtent.startingAt(oneMinuteAgo));
+        handler.setTimeExtent(TimeExtent.beginAt(oneMinuteAgo));
         handler.setReplaySpeed(0.25);
         latch.await(3, TimeUnit.SECONDS);
 

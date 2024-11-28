@@ -3,7 +3,7 @@ package org.sensorhub.oshconnect.net.websocket;
 import org.json.JSONObject;
 import org.sensorhub.oshconnect.net.RequestFormat;
 import org.sensorhub.oshconnect.oshdatamodels.OSHDatastream;
-import org.sensorhub.oshconnect.time.TimeExtent;
+import org.vast.util.TimeExtent;
 
 import java.nio.ByteBuffer;
 import java.time.Instant;
@@ -251,8 +251,8 @@ public abstract class DatastreamListener implements DatastreamEventListener {
         if (requestFormat != null) {
             parameters.put("format", requestFormat.getMimeType());
         }
-        if (timeExtent != null && timeExtent != TimeExtent.TIME_NOW) {
-            parameters.put("phenomenonTime", timeExtent.isoStringUTC());
+        if (timeExtent != null && !timeExtent.isNow()) {
+            parameters.put("phenomenonTime", timeExtent.isoStringUTC(false));
             parameters.put("replaySpeed", String.valueOf(replaySpeed));
         }
 

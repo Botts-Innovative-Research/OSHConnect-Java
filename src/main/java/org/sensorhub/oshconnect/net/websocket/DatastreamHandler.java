@@ -3,8 +3,8 @@ package org.sensorhub.oshconnect.net.websocket;
 import org.sensorhub.oshconnect.DatastreamManager;
 import org.sensorhub.oshconnect.net.RequestFormat;
 import org.sensorhub.oshconnect.oshdatamodels.OSHDatastream;
-import org.sensorhub.oshconnect.time.TimeExtent;
 import org.sensorhub.oshconnect.time.TimeSynchronizer;
+import org.vast.util.TimeExtent;
 
 import java.util.ArrayList;
 import java.util.List;
