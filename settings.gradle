@@ -1,2 +1,4 @@
 rootProject.name = 'OSHConnect-Java'
 
+include 'swe-common-om'
+project(':swe-common-om').projectDir = "$rootDir/submodules/lib-ogc/swe-common-om" as File
