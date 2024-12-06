@@ -56,6 +56,7 @@ public class APIRequest {
 
             if (requestMethod == HttpRequestMethod.POST || requestMethod == HttpRequestMethod.PUT) {
                 connection.setDoOutput(true);
+                connection.setRequestProperty("Content-Type", "application/json");
                 try (OutputStream os = connection.getOutputStream()) {
                     byte[] input = body.getBytes(StandardCharsets.UTF_8);
                     os.write(input, 0, input.length);

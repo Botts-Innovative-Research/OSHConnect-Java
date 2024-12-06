@@ -3,12 +3,14 @@ package org.sensorhub.oshconnect.oshdatamodels;
 import com.google.gson.Gson;
 
 import org.sensorhub.oshconnect.constants.Service;
+import org.sensorhub.oshconnect.datamodels.Properties;
 import org.sensorhub.oshconnect.datamodels.SystemResource;
 import org.sensorhub.oshconnect.net.APIRequest;
 import org.sensorhub.oshconnect.net.APIResponse;
 import org.sensorhub.oshconnect.net.HttpRequestMethod;
 import org.sensorhub.oshconnect.net.Protocol;
 import org.sensorhub.oshconnect.notification.INotificationSystem;
+import org.vast.util.Asserts;
 
 import java.util.ArrayList;
 import java.util.Base64;
@@ -80,6 +82,117 @@ public class OSHNode {
      * @return The list of systems.
      */
     public List<OSHSystem> discoverSystems() {
+        List<SystemResource> systemResources = getSystemResourcesFromServer();
+        for (SystemResource systemResource : systemResources) {
+            if (systems.stream().noneMatch(s -> s.getId().equals(systemResource.getId()))) {
+                addSystem(systemResource);
+            }
+        }
+
+        return getSystems();
+    }
+
+    /**
+     * Create a system on the OpenSensorHub node and add it to the list of discovered systems.
+     * If a system with the same UID already exists, it will be returned instead.
+     *
+     * @param type       The type of system.
+     * @param properties The properties of the system.
+     * @return The OSHSystem object for the created system or null if the system could not be created.
+     */
+    public OSHSystem createSystem(String type, Properties properties) {
+        String uid = properties.getUid();
+
+        Asserts.checkNotNull(properties, "properties cannot be null");
+        Asserts.checkNotNullOrEmpty(uid, "properties.uid cannot be null");
+
+        // Check if this UID already exists and return it
+        for (OSHSystem system : systems) {
+            if (system.getSystemResource().getProperties().getUid().equals(uid)) {
+                System.out.println("System with UID " + uid + " already exists.");
+                return system;
+            }
+        }
+
+        // Check if this UID already exists on the server and return it
+        List<SystemResource> systemResources = getSystemResourcesFromServer();
+        for (SystemResource systemResource : systemResources) {
+            if (systemResource.getProperties().getUid().equals(uid)) {
+                System.out.println("System with UID " + uid + " already exists on the server.");
+                return addSystem(systemResource);
+            }
+        }
+
+        Asserts.checkNotNullOrEmpty(type, "type cannot be null or empty");
+        Asserts.checkNotNullOrEmpty(properties.getName(), "properties.name cannot be null or empty");
+
+        SystemResource systemResourceNew = new SystemResource(type, null, properties);
+
+        APIRequest request = new APIRequest();
+        request.setRequestMethod(HttpRequestMethod.POST);
+        request.setUrl(getHTTPPrefix() + getSystemsEndpoint());
+        request.setBody(systemResourceNew.toJson());
+        if (authorizationToken != null) {
+            request.setAuthorizationToken(authorizationToken);
+        }
+        request.execute();
+
+        // Find the system with the UID we just created
+        systemResources = getSystemResourcesFromServer();
+        for (SystemResource systemResource : systemResources) {
+            if (systemResource.getProperties().getUid().equals(uid)) {
+                return addSystem(systemResource);
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Add a system to the list of systems and notify listeners.
+     *
+     * @param systemResource The system resource.
+     * @return The OSHSystem object for the added system.
+     */
+    private OSHSystem addSystem(SystemResource systemResource) {
+        OSHSystem system = new OSHSystem(systemResource, this);
+        systems.add(system);
+        notifySystemAdded(system);
+        return system;
+    }
+
+    /**
+     * Delete a system from the OpenSensorHub node and remove it from the list of discovered systems.
+     *
+     * @param system The system to delete.
+     * @return True if the system was deleted successfully, false otherwise.
+     */
+    public boolean deleteSystem(OSHSystem system) {
+        APIRequest request = new APIRequest();
+        request.setRequestMethod(HttpRequestMethod.DELETE);
+        request.setUrl(getHTTPPrefix() + getSystemsEndpoint() + "/" + system.getId());
+        if (authorizationToken != null) {
+            request.setAuthorizationToken(authorizationToken);
+        }
+        request.execute();
+
+        // Check if the system was deleted successfully
+        List<SystemResource> systemResources = getSystemResourcesFromServer();
+        if (systemResources.stream().anyMatch(s -> s.getId().equals(system.getId()))) {
+            return false;
+        }
+
+        systems.remove(system);
+        notifySystemRemoved(system);
+        return true;
+    }
+
+    /**
+     * Connect to the OpenSensorHub node and get a list of systems.
+     *
+     * @return The list of systems.
+     */
+    private List<SystemResource> getSystemResourcesFromServer() {
         APIRequest request = new APIRequest();
         request.setRequestMethod(HttpRequestMethod.GET);
         request.setUrl(getHTTPPrefix() + getSystemsEndpoint());
@@ -88,17 +201,7 @@ public class OSHNode {
         }
 
         APIResponse<SystemResource> response = request.execute(SystemResource.class);
-        List<SystemResource> systemResources = response.getItems();
-
-        for (SystemResource systemResource : systemResources) {
-            if (systems.stream().noneMatch(s -> s.getId().equals(systemResource.getId()))) {
-                OSHSystem system = new OSHSystem(systemResource, this);
-                systems.add(system);
-                notifySystemAdded(system);
-            }
-        }
-
-        return getSystems();
+        return response.getItems();
     }
 
     /**

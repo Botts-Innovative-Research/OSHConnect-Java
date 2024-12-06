@@ -1,5 +1,7 @@
 package org.sensorhub.oshconnect;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.sensorhub.oshconnect.TestConstants.IS_SECURE;
 import static org.sensorhub.oshconnect.TestConstants.PASSWORD;
 import static org.sensorhub.oshconnect.TestConstants.SENSOR_HUB_ROOT;
@@ -7,9 +9,12 @@ import static org.sensorhub.oshconnect.TestConstants.USERNAME;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.sensorhub.oshconnect.datamodels.Properties;
 import org.sensorhub.oshconnect.net.websocket.DatastreamEventArgs;
 import org.sensorhub.oshconnect.net.websocket.DatastreamHandler;
 import org.sensorhub.oshconnect.oshdatamodels.OSHDatastream;
+import org.sensorhub.oshconnect.oshdatamodels.OSHNode;
+import org.sensorhub.oshconnect.oshdatamodels.OSHSystem;
 import org.vast.util.TimeExtent;
 
 import java.time.Instant;
@@ -27,8 +32,31 @@ class WebSocketTest {
     @Test
     void testConnect() throws InterruptedException {
         OSHConnect oshConnect = new OSHConnect();
-        oshConnect.createNode(SENSOR_HUB_ROOT, IS_SECURE, USERNAME, PASSWORD);
-        oshConnect.discoverSystems();
+        OSHNode node = oshConnect.createNode(SENSOR_HUB_ROOT, IS_SECURE, USERNAME, PASSWORD);
+
+        //Create a new system
+        Properties properties = new Properties("urn:sensor:catsensor001", null, "Cat Sensor", "A sensor that measures the number of cats in the room.", List.of("2024-12-06T18:57:51.968Z", "now"));
+        OSHSystem newSystem = node.createSystem("Feature", properties);
+        assertNotNull(newSystem);
+        String systemId = newSystem.getId();
+
+        // Check if the system was created
+        List<OSHSystem> systems = node.getSystems();
+        assertTrue(systems.stream().anyMatch(s -> s.getSystemResource().getId().equals(systemId)));
+        System.out.println("System created " + systemId + ": " + newSystem.getSystemResource().getProperties().getName());
+
+        // Discover all systems
+        System.out.println("Discovering systems...");
+        systems = oshConnect.discoverSystems();
+        for (OSHSystem system : systems) {
+            System.out.println("System " + system.getSystemResource().getId() + ": " + system.getSystemResource().getProperties().getName());
+        }
+
+        // Delete the system
+        assertTrue(node.deleteSystem(newSystem));
+        System.out.println("System deleted " + systemId + ": " + newSystem.getSystemResource().getProperties().getName());
+        System.out.println();
+
         List<OSHDatastream> datastreams = oshConnect.discoverDatastreams();
         DatastreamHandler handler = oshConnect.getDatastreamManager().createDatastreamHandler(this::onStreamUpdate);
 
