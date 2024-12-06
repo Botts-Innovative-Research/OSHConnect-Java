@@ -17,8 +17,20 @@ dependencies {
     compileOnly 'org.projectlombok:lombok:1.18.34'
     annotationProcessor 'org.projectlombok:lombok:1.18.34'
     testImplementation platform('org.junit:junit-bom:5.10.0')
-    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
     implementation project(':swe-common-om')
+}
+
+subprojects {
+    repositories {
+        mavenCentral()
+        google()
+    }
+
+    apply plugin: 'java-library'
+
+    ext.pom = {}
 }
 
 test {
