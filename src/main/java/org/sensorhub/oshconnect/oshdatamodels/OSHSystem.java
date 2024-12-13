@@ -4,12 +4,10 @@ import org.sensorhub.oshconnect.datamodels.DatastreamResource;
 import org.sensorhub.oshconnect.datamodels.SystemResource;
 import org.sensorhub.oshconnect.net.APIRequest;
 import org.sensorhub.oshconnect.net.APIResponse;
-import org.sensorhub.oshconnect.net.HttpRequestMethod;
 import org.sensorhub.oshconnect.notification.INotificationDatastream;
 
 import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 
 import lombok.Getter;
@@ -39,14 +37,11 @@ public class OSHSystem {
      */
     public List<OSHDatastream> discoverDataStreams() {
         APIRequest request = new APIRequest();
-        request.setRequestMethod(HttpRequestMethod.GET);
         request.setUrl(parentNode.getHTTPPrefix() + getDatastreamsEndpoint());
-        if (parentNode.getAuthorizationToken() != null) {
-            request.setAuthorizationToken(parentNode.getAuthorizationToken());
-        }
+        request.setAuthorizationToken(parentNode.getAuthorizationToken());
 
-        APIResponse<DatastreamResource> response = request.execute(DatastreamResource.class);
-        List<DatastreamResource> datastreamResources = response.getItems();
+        APIResponse response = request.get();
+        List<DatastreamResource> datastreamResources = response.getItems(DatastreamResource.class);
 
         for (DatastreamResource datastreamResource : datastreamResources) {
             if (datastreams.stream().noneMatch(ds -> ds.getDatastreamResource().getId().equals(datastreamResource.getId()))) {
@@ -68,26 +63,21 @@ public class OSHSystem {
      */
     public void updateSystem(SystemResource systemResource) {
         APIRequest request = new APIRequest();
-        request.setRequestMethod(HttpRequestMethod.PUT);
         request.setUrl(parentNode.getHTTPPrefix() + parentNode.getSystemsEndpoint() + "/" + getId());
         request.setBody(systemResource.toJson());
-        if (parentNode.getAuthorizationToken() != null) {
-            request.setAuthorizationToken(parentNode.getAuthorizationToken());
-        }
-        String responseCode = request.execute();
-        if (!Objects.equals(responseCode, "204")) {
-            System.out.println("Error updating system: " + responseCode);
-        }
+        request.setAuthorizationToken(parentNode.getAuthorizationToken());
+        APIResponse response = request.put();
+        if (response.isSuccessful()) {
+            request = new APIRequest();
 
-        request = new APIRequest();
-        request.setRequestMethod(HttpRequestMethod.GET);
-        request.setUrl(parentNode.getHTTPPrefix() + parentNode.getSystemsEndpoint() + "/" + getId());
-        if (parentNode.getAuthorizationToken() != null) {
-            request.setAuthorizationToken(parentNode.getAuthorizationToken());
-        }
+            request.setUrl(parentNode.getHTTPPrefix() + parentNode.getSystemsEndpoint() + "/" + getId());
+            if (parentNode.getAuthorizationToken() != null) {
+                request.setAuthorizationToken(parentNode.getAuthorizationToken());
+            }
 
-        String response = request.execute();
-        this.systemResource = SystemResource.fromJson(response);
+            response = request.get();
+            this.systemResource = response.getItem(SystemResource.class);
+        }
     }
 
     /**

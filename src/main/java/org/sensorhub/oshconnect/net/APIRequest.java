@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.ProtocolException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
@@ -15,18 +17,60 @@ import lombok.Setter;
 @Setter
 @Getter
 public class APIRequest {
-    private HttpRequestMethod requestMethod = HttpRequestMethod.GET;
     private String url;
     private String body;
     private Map<String, String> params;
     private Map<String, String> headers;
     private String authorizationToken;
 
-    public <T> APIResponse<T> execute(Class<T> clazz) {
-        return APIResponse.fromJson(execute(), clazz);
+    public APIResponse get() {
+        try {
+            HttpURLConnection connection = buildConnection(HttpRequestMethod.GET);
+            connection.connect();
+            StringBuilder response = new StringBuilder();
+            try (var reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    response.append(line);
+                }
+            }
+            APIResponse apiResponse = new APIResponse(connection.getResponseCode(), connection.getResponseMessage(), response.toString());
+            connection.disconnect();
+            return apiResponse;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return null;
     }
 
-    public String execute() {
+    public APIResponse post() {
+        return execute2(HttpRequestMethod.POST);
+    }
+
+    public APIResponse put() {
+        return execute2(HttpRequestMethod.PUT);
+    }
+
+    public APIResponse delete() {
+        return execute2(HttpRequestMethod.DELETE);
+    }
+
+    private APIResponse execute2(HttpRequestMethod requestMethod) {
+        try {
+            HttpURLConnection connection = buildConnection(requestMethod);
+            connection.connect();
+            APIResponse apiResponse = new APIResponse(connection.getResponseCode(), connection.getResponseMessage(), null);
+            connection.disconnect();
+            return apiResponse;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    private HttpURLConnection buildConnection(HttpRequestMethod requestMethod) {
         if (url == null)
             throw new IllegalArgumentException("URL cannot be null");
 
@@ -37,21 +81,21 @@ public class APIRequest {
             throw new IllegalArgumentException("Body cannot be null for POST or PUT requests");
 
         try {
-            StringBuilder urlWithParams = new StringBuilder(url);
+            StringBuilder urlWithParamsBuilder = new StringBuilder(url);
             if (params != null) {
-                urlWithParams.append("?");
-                params.forEach((key, value) -> urlWithParams.append(key).append("=").append(value).append("&"));
-                urlWithParams.deleteCharAt(urlWithParams.length() - 1); // Remove the last "&"
+                urlWithParamsBuilder.append("?");
+                params.forEach((key, value) -> urlWithParamsBuilder.append(key).append("=").append(value).append("&"));
+                urlWithParamsBuilder.deleteCharAt(urlWithParamsBuilder.length() - 1); // Remove the last "&"
             }
 
-            URL url = new URL(urlWithParams.toString());
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            URL urlWithParams = new URL(urlWithParamsBuilder.toString());
+            HttpURLConnection connection = (HttpURLConnection) urlWithParams.openConnection();
             connection.setRequestMethod(requestMethod.name());
 
             if (headers != null)
                 headers.forEach(connection::setRequestProperty);
 
-            if (authorizationToken != null)
+            if (authorizationToken != null && !authorizationToken.isBlank())
                 connection.setRequestProperty("Authorization", "Basic " + authorizationToken);
 
             if (requestMethod == HttpRequestMethod.POST || requestMethod == HttpRequestMethod.PUT) {
@@ -63,30 +107,13 @@ public class APIRequest {
                 }
             }
 
-            if (requestMethod == HttpRequestMethod.GET) {
-                connection.connect();
-                StringBuilder response = new StringBuilder();
-                try (var reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        response.append(line);
-                    }
-                }
-                connection.disconnect();
-
-                return response.toString();
-            } else {
-                connection.connect();
-                String response = String.valueOf(connection.getResponseCode());
-                connection.disconnect();
-                return response;
-            }
-
-
+            return connection;
+        } catch (MalformedURLException e) {
+            throw new IllegalArgumentException("Invalid URL: " + url);
+        } catch (ProtocolException e) {
+            throw new IllegalArgumentException("Invalid request method: " + requestMethod);
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new IllegalArgumentException("Error connecting to URL: " + url);
         }
-
-        return null;
     }
 }

@@ -7,7 +7,6 @@ import org.sensorhub.oshconnect.datamodels.Properties;
 import org.sensorhub.oshconnect.datamodels.SystemResource;
 import org.sensorhub.oshconnect.net.APIRequest;
 import org.sensorhub.oshconnect.net.APIResponse;
-import org.sensorhub.oshconnect.net.HttpRequestMethod;
 import org.sensorhub.oshconnect.net.Protocol;
 import org.sensorhub.oshconnect.notification.INotificationSystem;
 import org.vast.util.Asserts;
@@ -127,13 +126,12 @@ public class OSHNode {
         SystemResource systemResourceNew = new SystemResource(null, properties);
 
         APIRequest request = new APIRequest();
-        request.setRequestMethod(HttpRequestMethod.POST);
         request.setUrl(getHTTPPrefix() + getSystemsEndpoint());
         request.setBody(systemResourceNew.toJson());
         if (authorizationToken != null) {
             request.setAuthorizationToken(authorizationToken);
         }
-        request.execute();
+        request.post();
 
         // Find the system with the UID we just created
         systemResources = getSystemResourcesFromServer();
@@ -167,22 +165,18 @@ public class OSHNode {
      */
     public boolean deleteSystem(OSHSystem system) {
         APIRequest request = new APIRequest();
-        request.setRequestMethod(HttpRequestMethod.DELETE);
         request.setUrl(getHTTPPrefix() + getSystemsEndpoint() + "/" + system.getId());
         if (authorizationToken != null) {
             request.setAuthorizationToken(authorizationToken);
         }
-        request.execute();
+        APIResponse response = request.delete();
 
-        // Check if the system was deleted successfully
-        List<SystemResource> systemResources = getSystemResourcesFromServer();
-        if (systemResources.stream().anyMatch(s -> s.getId().equals(system.getId()))) {
-            return false;
+        if (response.isSuccessful()) {
+            systems.remove(system);
+            notifySystemRemoved(system);
         }
 
-        systems.remove(system);
-        notifySystemRemoved(system);
-        return true;
+        return response.isSuccessful();
     }
 
     /**
@@ -192,14 +186,16 @@ public class OSHNode {
      */
     private List<SystemResource> getSystemResourcesFromServer() {
         APIRequest request = new APIRequest();
-        request.setRequestMethod(HttpRequestMethod.GET);
         request.setUrl(getHTTPPrefix() + getSystemsEndpoint());
         if (authorizationToken != null) {
             request.setAuthorizationToken(authorizationToken);
         }
 
-        APIResponse<SystemResource> response = request.execute(SystemResource.class);
-        return response.getItems();
+        APIResponse response = request.get();
+        if (response.isSuccessful()) {
+            return response.getItems(SystemResource.class);
+        }
+        return new ArrayList<>();
     }
 
     /**
