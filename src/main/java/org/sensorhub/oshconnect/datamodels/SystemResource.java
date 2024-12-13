@@ -8,7 +8,7 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public class SystemResource {
-    private final String type;
+    private final String type = "Feature";
     private final String id;
     private final Properties properties;
 
@@ -19,5 +19,9 @@ public class SystemResource {
     @Override
     public String toString() {
         return toJson();
+    }
+
+    public static SystemResource fromJson(String json) {
+        return new Gson().fromJson(json, SystemResource.class);
     }
 }

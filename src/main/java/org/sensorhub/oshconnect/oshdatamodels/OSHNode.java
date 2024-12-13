@@ -96,11 +96,10 @@ public class OSHNode {
      * Create a system on the OpenSensorHub node and add it to the list of discovered systems.
      * If a system with the same UID already exists, it will be returned instead.
      *
-     * @param type       The type of system.
      * @param properties The properties of the system.
      * @return The OSHSystem object for the created system or null if the system could not be created.
      */
-    public OSHSystem createSystem(String type, Properties properties) {
+    public OSHSystem createSystem(Properties properties) {
         String uid = properties.getUid();
 
         Asserts.checkNotNull(properties, "properties cannot be null");
@@ -123,10 +122,9 @@ public class OSHNode {
             }
         }
 
-        Asserts.checkNotNullOrEmpty(type, "type cannot be null or empty");
         Asserts.checkNotNullOrEmpty(properties.getName(), "properties.name cannot be null or empty");
 
-        SystemResource systemResourceNew = new SystemResource(type, null, properties);
+        SystemResource systemResourceNew = new SystemResource(null, properties);
 
         APIRequest request = new APIRequest();
         request.setRequestMethod(HttpRequestMethod.POST);
@@ -155,7 +153,7 @@ public class OSHNode {
      * @return The OSHSystem object for the added system.
      */
     private OSHSystem addSystem(SystemResource systemResource) {
-        OSHSystem system = new OSHSystem(systemResource, this);
+        OSHSystem system = new OSHSystem(this, systemResource);
         systems.add(system);
         notifySystemAdded(system);
         return system;

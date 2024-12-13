@@ -63,17 +63,26 @@ public class APIRequest {
                 }
             }
 
-            connection.connect();
-            StringBuilder response = new StringBuilder();
-            try (var reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    response.append(line);
+            if (requestMethod == HttpRequestMethod.GET) {
+                connection.connect();
+                StringBuilder response = new StringBuilder();
+                try (var reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        response.append(line);
+                    }
                 }
-            }
-            connection.disconnect();
+                connection.disconnect();
 
-            return response.toString();
+                return response.toString();
+            } else {
+                connection.connect();
+                String response = String.valueOf(connection.getResponseCode());
+                connection.disconnect();
+                return response;
+            }
+
+
         } catch (IOException e) {
             e.printStackTrace();
         }

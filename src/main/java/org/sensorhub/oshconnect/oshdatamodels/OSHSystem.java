@@ -9,6 +9,7 @@ import org.sensorhub.oshconnect.notification.INotificationDatastream;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 import lombok.Getter;
@@ -20,11 +21,16 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class OSHSystem {
     @Getter
-    private final SystemResource systemResource;
+    private SystemResource systemResource;
     @Getter
     private final OSHNode parentNode;
     private final Set<OSHDatastream> datastreams = new HashSet<>();
     private final Set<INotificationDatastream> datastreamNotificationListeners = new HashSet<>();
+
+    public OSHSystem(OSHNode parentNode, SystemResource systemResource) {
+        this.parentNode = parentNode;
+        this.systemResource = systemResource;
+    }
 
     /**
      * Discover the datastreams associated with the system.
@@ -51,6 +57,37 @@ public class OSHSystem {
         }
 
         return getDatastreams();
+    }
+
+    /**
+     * Update the system with new properties.
+     * Note: This method will update the systemResource field with the new properties returned from the server,
+     * not the properties passed in.
+     *
+     * @param systemResource The new properties.
+     */
+    public void updateSystem(SystemResource systemResource) {
+        APIRequest request = new APIRequest();
+        request.setRequestMethod(HttpRequestMethod.PUT);
+        request.setUrl(parentNode.getHTTPPrefix() + parentNode.getSystemsEndpoint() + "/" + getId());
+        request.setBody(systemResource.toJson());
+        if (parentNode.getAuthorizationToken() != null) {
+            request.setAuthorizationToken(parentNode.getAuthorizationToken());
+        }
+        String responseCode = request.execute();
+        if (!Objects.equals(responseCode, "204")) {
+            System.out.println("Error updating system: " + responseCode);
+        }
+
+        request = new APIRequest();
+        request.setRequestMethod(HttpRequestMethod.GET);
+        request.setUrl(parentNode.getHTTPPrefix() + parentNode.getSystemsEndpoint() + "/" + getId());
+        if (parentNode.getAuthorizationToken() != null) {
+            request.setAuthorizationToken(parentNode.getAuthorizationToken());
+        }
+
+        String response = request.execute();
+        this.systemResource = SystemResource.fromJson(response);
     }
 
     /**
