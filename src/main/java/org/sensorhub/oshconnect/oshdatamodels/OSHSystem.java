@@ -81,6 +81,30 @@ public class OSHSystem {
     }
 
     /**
+     * Create a new datastream associated with the system.
+     *
+     * @param datastreamResource The datastream properties.
+     * @return The new datastream or null if the creation failed.
+     */
+    public OSHDatastream createDatastream(DatastreamResource datastreamResource) {
+        APIRequest request = new APIRequest();
+        request.setUrl(parentNode.getHTTPPrefix() + getDatastreamsEndpoint());
+        request.setBody(datastreamResource.toJson());
+        request.setAuthorizationToken(parentNode.getAuthorizationToken());
+        APIResponse response = request.post();
+        if (response.isSuccessful()) {
+            DatastreamResource newResource = response.getItem(DatastreamResource.class);
+            OSHDatastream datastream = new OSHDatastream(newResource, this);
+            datastreams.add(datastream);
+            notifyDatastreamAdded(datastream);
+            return datastream;
+        } else {
+            System.out.println("Failed to create datastream: " + response.getResponseMessage());
+        }
+        return null;
+    }
+
+    /**
      * Get the endpoint for the datastreams of this system.
      *
      * @return The endpoint.

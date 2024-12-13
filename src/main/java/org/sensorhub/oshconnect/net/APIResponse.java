@@ -2,6 +2,7 @@ package org.sensorhub.oshconnect.net;
 
 import com.google.gson.Gson;
 
+import java.util.Collections;
 import java.util.List;
 
 import lombok.Getter;
@@ -29,6 +30,10 @@ public class APIResponse {
      * Returns the response body as the specified type.
      */
     public <T> T getItem(Class<T> clazz) {
+        //check that the first character of the response body is a '{' to avoid a JsonSyntaxException
+        if (responseBody.charAt(0) != '{') {
+            return null;
+        }
         return new Gson().fromJson(responseBody, clazz);
     }
 
@@ -36,6 +41,9 @@ public class APIResponse {
      * Returns the response body as a list of the specified type.
      */
     public <T> List<T> getItems(Class<T> clazz) {
+        if (responseBody.charAt(0) != '{') {
+            return Collections.emptyList();
+        }
         APIResponseItems<T> apiResponse = APIResponseItems.fromJson(responseBody, clazz);
         return apiResponse.getItems();
     }

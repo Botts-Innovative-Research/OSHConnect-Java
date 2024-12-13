@@ -45,18 +45,18 @@ public class APIRequest {
     }
 
     public APIResponse post() {
-        return execute2(HttpRequestMethod.POST);
+        return execute(HttpRequestMethod.POST);
     }
 
     public APIResponse put() {
-        return execute2(HttpRequestMethod.PUT);
+        return execute(HttpRequestMethod.PUT);
     }
 
     public APIResponse delete() {
-        return execute2(HttpRequestMethod.DELETE);
+        return execute(HttpRequestMethod.DELETE);
     }
 
-    private APIResponse execute2(HttpRequestMethod requestMethod) {
+    private APIResponse execute(HttpRequestMethod requestMethod) {
         try {
             HttpURLConnection connection = buildConnection(requestMethod);
             connection.connect();
