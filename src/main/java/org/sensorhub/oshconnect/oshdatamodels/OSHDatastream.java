@@ -164,4 +164,19 @@ public class OSHDatastream {
         APIResponse response = request.get();
         return response.getItems(Observation.class);
     }
+
+    /**
+     * Adds an observation to this datastream.
+     *
+     * @param observation The observation to add.
+     * @return true if the observation was added successfully, false otherwise.
+     */
+    public boolean addObservation(Observation observation) {
+        APIRequest request = new APIRequest();
+        request.setUrl(parentSystem.getParentNode().getHTTPPrefix() + getObservationsEndpoint());
+        request.setAuthorizationToken(parentSystem.getParentNode().getAuthorizationToken());
+        request.setBody(observation.toJson());
+        APIResponse response = request.post();
+        return response.isSuccessful();
+    }
 }

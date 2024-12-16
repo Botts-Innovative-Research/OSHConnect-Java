@@ -230,6 +230,10 @@ public class OSHNode {
         return getApiEndpoint() + "/systems";
     }
 
+    public String getObservationsEndpoint() {
+        return getApiEndpoint() + "/observations";
+    }
+
     /**
      * Get a list of discovered systems.
      *
@@ -335,7 +339,7 @@ public class OSHNode {
      */
     public String getObservation(String id) {
         APIRequest request = new APIRequest();
-        request.setUrl(getHTTPPrefix() + getApiEndpoint() + "/observations/" + id);
+        request.setUrl(getHTTPPrefix() + getObservationsEndpoint() + "/" + id);
         request.setAuthorizationToken(authorizationToken);
         APIResponse response = request.get();
         return response.getResponseBody();
@@ -350,9 +354,39 @@ public class OSHNode {
      */
     public Observation getObservationObject(String id) {
         APIRequest request = new APIRequest();
-        request.setUrl(getHTTPPrefix() + getApiEndpoint() + "/observations/" + id);
+        request.setUrl(getHTTPPrefix() + getObservationsEndpoint() + "/" + id);
         request.setAuthorizationToken(authorizationToken);
         APIResponse response = request.get();
         return response.getItem(Observation.class);
+    }
+
+    /**
+     * Update the specified observation.
+     *
+     * @param id          The ID of the observation.
+     * @param observation The observation object.
+     * @return True if the update was successful, false otherwise.
+     */
+    public boolean updateObservation(String id, Observation observation) {
+        APIRequest request = new APIRequest();
+        request.setUrl(getHTTPPrefix() + getObservationsEndpoint() + "/" + id);
+        request.setBody(observation.toJson());
+        request.setAuthorizationToken(authorizationToken);
+        APIResponse response = request.put();
+        return response.isSuccessful();
+    }
+
+    /**
+     * Delete the specified observation.
+     *
+     * @param id The ID of the observation.
+     * @return True if the deletion was successful, false otherwise.
+     */
+    public boolean deleteObservation(String id) {
+        APIRequest request = new APIRequest();
+        request.setUrl(getHTTPPrefix() + getObservationsEndpoint() + "/" + id);
+        request.setAuthorizationToken(authorizationToken);
+        APIResponse response = request.delete();
+        return response.isSuccessful();
     }
 }
