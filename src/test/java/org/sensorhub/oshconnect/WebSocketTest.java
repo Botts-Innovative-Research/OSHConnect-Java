@@ -36,7 +36,7 @@ class WebSocketTest {
         OSHNode node = oshConnect.createNode(SENSOR_HUB_ROOT, IS_SECURE, USERNAME, PASSWORD);
 
         //Create a new system
-        Properties properties = new Properties("urn:sensor:catsensor001", null, "Cat Sensor", "A sensor that measures the number of cats in the room.", List.of("2024-12-06T18:57:51.968Z", "now"));
+        Properties properties = new Properties(null, "urn:sensor:catsensor001", "Cat Sensor", "A sensor that measures the number of cats in the room.", null, List.of("2024-12-06T18:57:51.968Z", "now"), null);
         OSHSystem newSystem = node.createSystem(properties);
         assertNotNull(newSystem);
         String systemId = newSystem.getId();
@@ -58,7 +58,7 @@ class WebSocketTest {
         }
 
         // Update the system
-        SystemResource updatedProperties = new SystemResource(systemId, new Properties("urn:sensor:catsensor001", null, "Cat Sensor", "asdfg", List.of("2024-12-06T18:57:51.968Z", "now")));
+        SystemResource updatedProperties = new SystemResource(systemId, new Properties(null, "urn:sensor:catsensor001", "Cat Sensor", null, "asdfg", List.of("2024-12-06T18:57:51.968Z", "now"), null));
         newSystem.updateSystem(updatedProperties);
 
         System.out.println();
@@ -73,7 +73,9 @@ class WebSocketTest {
         DatastreamHandler handler = oshConnect.getDatastreamManager().createDatastreamHandler(this::onStreamUpdate);
 
         // Add all the discovered datastreams to the handler.
-        datastreams.forEach(handler::addDatastream);
+        for (OSHDatastream datastream : datastreams) {
+            handler.addDatastream(datastream);
+        }
 
         // Connect, listen for updates.
         handler.connect();

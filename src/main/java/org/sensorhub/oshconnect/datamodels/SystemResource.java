@@ -9,7 +9,13 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class SystemResource {
     private final String type = "Feature";
+    /**
+     * Local ID of the feature (ignored on create or update).
+     */
     private final String id;
+    /**
+     * Feature properties.
+     */
     private final Properties properties;
 
     public String toJson() {
