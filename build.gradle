@@ -2,8 +2,14 @@ plugins {
     id 'java'
 }
 
+apply from: gradle.oshCoreDir + '/common.gradle'
 group = 'org.sensorhub'
 version = '1.0'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
 
 repositories {
     mavenCentral()
