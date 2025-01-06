@@ -1,9 +1,11 @@
 package org.sensorhub.oshconnect.oshdatamodels;
 
+import org.sensorhub.oshconnect.datamodels.ControlStreamResource;
 import org.sensorhub.oshconnect.datamodels.DatastreamResource;
 import org.sensorhub.oshconnect.datamodels.SystemResource;
 import org.sensorhub.oshconnect.net.APIRequest;
 import org.sensorhub.oshconnect.net.APIResponse;
+import org.sensorhub.oshconnect.notification.INotificationControlStream;
 import org.sensorhub.oshconnect.notification.INotificationDatastream;
 
 import java.util.HashSet;
@@ -23,7 +25,9 @@ public class OSHSystem {
     @Getter
     private final OSHNode parentNode;
     private final Set<OSHDatastream> datastreams = new HashSet<>();
+    private final Set<OSHControlStream> controlStreams = new HashSet<>();
     private final Set<INotificationDatastream> datastreamNotificationListeners = new HashSet<>();
+    private final Set<INotificationControlStream> controlStreamNotificationListeners = new HashSet();
 
     public OSHSystem(OSHNode parentNode, SystemResource systemResource) {
         this.parentNode = parentNode;
@@ -52,6 +56,30 @@ public class OSHSystem {
         }
 
         return getDatastreams();
+    }
+
+    /**
+     * Discover the control streams associated with the system.
+     *
+     * @return The list of control streams.
+     */
+    public List<OSHControlStream> discoverControlStreams() {
+        APIRequest request = new APIRequest();
+        request.setUrl(parentNode.getHTTPPrefix() + getControlStreamsEndpoint());
+        request.setAuthorizationToken(parentNode.getAuthorizationToken());
+
+        APIResponse response = request.get();
+        List<ControlStreamResource> controlStreamResources = response.getItems(ControlStreamResource.class);
+
+        for (ControlStreamResource controlStreamResource : controlStreamResources) {
+            if (datastreams.stream().noneMatch(ds -> ds.getDatastreamResource().getId().equals(controlStreamResource.getId()))) {
+                OSHControlStream controlStream = new OSHControlStream(controlStreamResource, this);
+                controlStreams.add(controlStream);
+                notifyControlStreamAdded(controlStream);
+            }
+        }
+
+        return getControlStreams();
     }
 
     /**
@@ -114,6 +142,15 @@ public class OSHSystem {
     }
 
     /**
+     * Get the endpoint for the control streams of this system.
+     *
+     * @return The endpoint.
+     */
+    public String getControlStreamsEndpoint() {
+        return parentNode.getSystemsEndpoint() + "/" + systemResource.getId() + "/controls";
+    }
+
+    /**
      * Get the ID of the system.
      *
      * @return The ID.
@@ -129,6 +166,15 @@ public class OSHSystem {
      */
     public List<OSHDatastream> getDatastreams() {
         return List.copyOf(datastreams);
+    }
+
+    /**
+     * Get a list of discovered control streams associated with the system.
+     *
+     * @return The control streams.
+     */
+    public List<OSHControlStream> getControlStreams() {
+        return List.copyOf(controlStreams);
     }
 
     /**
@@ -168,6 +214,28 @@ public class OSHSystem {
     public void notifyDatastreamRemoved(OSHDatastream datastream) {
         for (INotificationDatastream listener : datastreamNotificationListeners) {
             listener.onItemRemoved(datastream);
+        }
+    }
+
+    /**
+     * Notify listeners of a new control stream.
+     *
+     * @param controlStream The control stream.
+     */
+    public void notifyControlStreamAdded(OSHControlStream controlStream) {
+        for (INotificationControlStream listener : controlStreamNotificationListeners) {
+            listener.onItemAdded(controlStream);
+        }
+    }
+
+    /**
+     * Notify listeners of a removed control stream.
+     *
+     * @param controlStream The control stream.
+     */
+    public void notifyControlStreamRemoved(OSHControlStream controlStream) {
+        for (INotificationControlStream listener : controlStreamNotificationListeners) {
+            listener.onItemRemoved(controlStream);
         }
     }
 }

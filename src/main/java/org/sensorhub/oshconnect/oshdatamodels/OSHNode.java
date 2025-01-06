@@ -200,10 +200,10 @@ public class OSHNode {
     }
 
     /**
-     * Discover datastreams belonging to the systems of this OpenSensorHub node.
+     * Discover data streams belonging to the systems of this OpenSensorHub node.
      * This method should be called after discoverSystems().
-     * Note: This method may take a long time to complete if there are many systems and datastreams to discover;
-     * it is recommended to call OSHSystem.discoverDataStreams() on individual systems containing the datastreams of interest.
+     * Note: This method may take a long time to complete if there are many data streams to discover;
+     * it is recommended to call {@link OSHSystem#discoverDataStreams()} on individual systems containing the datastreams of interest.
      *
      * @return The list of datastreams.
      */
@@ -212,6 +212,21 @@ public class OSHNode {
             system.discoverDataStreams();
         }
         return getDatastreams();
+    }
+
+    /**
+     * Discover control streams belonging to the systems of this OpenSensorHub node.
+     * This method should be called after discoverSystems().
+     * Note: This method may take a long time to complete if there are many control streams to discover;
+     * it is recommended to call {@link OSHSystem#discoverControlStreams()} on individual systems containing the control streams of interest.
+     *
+     * @return The list of control streams.
+     */
+    public List<OSHControlStream> discoverControlStreams() {
+        for (OSHSystem system : systems) {
+            system.discoverControlStreams();
+        }
+        return getControlStreams();
     }
 
     public String getHTTPPrefix() {
@@ -254,6 +269,19 @@ public class OSHNode {
             datastreams.addAll(system.getDatastreams());
         }
         return datastreams;
+    }
+
+    /**
+     * Get a list of discovered control streams for all systems of this node.
+     *
+     * @return The list of control streams.
+     */
+    public List<OSHControlStream> getControlStreams() {
+        List<OSHControlStream> controlStreams = new ArrayList<>();
+        for (OSHSystem system : systems) {
+            controlStreams.addAll(system.getControlStreams());
+        }
+        return controlStreams;
     }
 
     /**

@@ -2,6 +2,7 @@ package org.sensorhub.oshconnect;
 
 import org.sensorhub.oshconnect.config.ConfigManager;
 import org.sensorhub.oshconnect.config.ConfigManagerJson;
+import org.sensorhub.oshconnect.oshdatamodels.OSHControlStream;
 import org.sensorhub.oshconnect.oshdatamodels.OSHDatastream;
 import org.sensorhub.oshconnect.oshdatamodels.OSHNode;
 import org.sensorhub.oshconnect.oshdatamodels.OSHSystem;
@@ -89,16 +90,29 @@ public class OSHConnect {
     }
 
     /**
-     * Discover datastreams belonging to all systems previously discovered by OSHConnect.
+     * Discover data streams belonging to all systems previously discovered by OSHConnect.
      * This method should be called after discoverSystems().
      * Note: This method may take a long time to complete if there are many systems and datastreams to discover;
-     * it is recommended to call OSHSystem.discoverDataStreams() on individual systems containing the datastreams of interest.
+     * it is recommended to call {@link OSHSystem#discoverDataStreams()} on individual systems containing the datastreams of interest.
      *
-     * @return A list of all datastreams discovered by OSHConnect.
+     * @return A list of all data streams discovered by OSHConnect.
      */
     public List<OSHDatastream> discoverDatastreams() {
         nodeManager.getNodes().forEach(OSHNode::discoverDatastreams);
         return getDatastreams();
+    }
+
+    /**
+     * Discover control streams belonging to all systems previously discovered by OSHConnect.
+     * This method should be called after discoverSystems().
+     * Note: This method may take a long time to complete if there are many systems and control streams to discover;
+     * it is recommended to call {@link OSHSystem#discoverControlStreams()} on individual systems containing the control streams of interest.
+     *
+     * @return A list of all control streams discovered by OSHConnect.
+     */
+    public List<OSHControlStream> discoverControlStreams() {
+        nodeManager.getNodes().forEach(OSHNode::discoverControlStreams);
+        return getControlStreams();
     }
 
     /**
@@ -120,6 +134,17 @@ public class OSHConnect {
     public List<OSHDatastream> getDatastreams() {
         return nodeManager.getNodes().stream()
                 .flatMap(node -> node.getDatastreams().stream())
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Get a list of all control streams discovered by OSHConnect.
+     *
+     * @return The list of control streams.
+     */
+    public List<OSHControlStream> getControlStreams() {
+        return nodeManager.getNodes().stream()
+                .flatMap(node -> node.getControlStreams().stream())
                 .collect(Collectors.toList());
     }
 
