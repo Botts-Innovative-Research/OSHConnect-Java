@@ -12,7 +12,7 @@ public class DatastreamSchema {
 
     public String toJson() {
         return new Gson().toJson(this);
-    }
+    } 
 
     @Override
     public String toString() {

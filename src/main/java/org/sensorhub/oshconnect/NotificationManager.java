@@ -84,7 +84,7 @@ public class NotificationManager {
 
     /**
      * Add a system notification listener.
-     * Listeners are notified when a system is added or removed from OSHConnect, for any node.
+     * Listeners are notified when a system is added or removed from OSHConnect for any node.
      *
      * @param listener The listener.
      */
@@ -103,7 +103,7 @@ public class NotificationManager {
 
     /**
      * Add a datastream notification listener.
-     * Listeners are notified when a datastream is added or removed from OSHConnect, for any system.
+     * Listeners are notified when a datastream is added or removed from OSHConnect for any system.
      *
      * @param listener The listener.
      */

@@ -1,17 +1,18 @@
 package org.sensorhub.oshconnect.oshdatamodels;
 
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import org.sensorhub.oshconnect.constants.Service;
 import org.sensorhub.oshconnect.datamodels.DatastreamResource;
 import org.sensorhub.oshconnect.datamodels.Observation;
 import org.sensorhub.oshconnect.net.APIRequest;
 import org.sensorhub.oshconnect.net.APIResponse;
+import org.sensorhub.oshconnect.util.Utilities;
 import org.vast.util.TimeExtent;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 
 @Getter
 @RequiredArgsConstructor
@@ -29,7 +30,7 @@ public class OSHDatastream {
      * @return the endpoint for the observations of this datastream.
      */
     public String getObservationsEndpoint() {
-        return parentSystem.getParentNode().getApiEndpoint() + "/datastreams/" + getId() + "/observations";
+        return Utilities.joinPath(parentSystem.getParentNode().getApiEndpoint(), Service.DATASTREAMS.getEndpoint(), getId(), Service.OBSERVATIONS.getEndpoint());
     }
 
     /**
@@ -39,7 +40,7 @@ public class OSHDatastream {
      */
     public String getObservations() {
         APIRequest request = new APIRequest();
-        request.setUrl(parentSystem.getParentNode().getHTTPPrefix() + getObservationsEndpoint());
+        request.setUrl(Utilities.joinPath(parentSystem.getParentNode().getHTTPPrefix(), getObservationsEndpoint()));
         request.setAuthorizationToken(parentSystem.getParentNode().getAuthorizationToken());
         APIResponse response = request.get();
         return response.getResponseBody();
@@ -54,15 +55,15 @@ public class OSHDatastream {
      * @param phenomenonTime   Only resources with a phenomenonTime property that intersects the value of the phenomenonTime parameter are selected.
      * @param resultTime       Only resources with a phenomenonTime property that intersects the value of the phenomenonTime parameter are selected.
      * @param foi              List of feature local IDs or unique IDs (URI).
-     *                         Only resources that are associated to a feature of interest that has one of the provided identifiers are selected.
+     *                         Only resources that are associated with a feature of interest that has one of the provided identifiers are selected.
      * @param observedProperty List of property local IDs or unique IDs (URI).
-     *                         Only resources that are associated to an observable property that has one of the provided identifiers are selected.
+     *                         Only resources that are associated with an observable property that has one of the provided identifiers are selected.
      * @param limit            This parameter limits the number of items that are presented in the response document.
      * @return A string containing the observations.
      */
     public String getObservations(List<String> id, TimeExtent phenomenonTime, TimeExtent resultTime, List<String> foi, List<String> observedProperty, int limit) {
         APIRequest request = new APIRequest();
-        request.setUrl(parentSystem.getParentNode().getHTTPPrefix() + getObservationsEndpoint());
+        request.setUrl(Utilities.joinPath(parentSystem.getParentNode().getHTTPPrefix(), getObservationsEndpoint()));
         request.setAuthorizationToken(parentSystem.getParentNode().getAuthorizationToken());
 
         Map<String, String> params = new HashMap<>();
@@ -106,7 +107,7 @@ public class OSHDatastream {
      */
     public List<Observation> getObservationsList() {
         APIRequest request = new APIRequest();
-        request.setUrl(parentSystem.getParentNode().getHTTPPrefix() + getObservationsEndpoint());
+        request.setUrl(Utilities.joinPath(parentSystem.getParentNode().getHTTPPrefix(), getObservationsEndpoint()));
         request.setAuthorizationToken(parentSystem.getParentNode().getAuthorizationToken());
         APIResponse response = request.get();
         return response.getItems(Observation.class);
@@ -121,15 +122,15 @@ public class OSHDatastream {
      * @param phenomenonTime   Only resources with a phenomenonTime property that intersects the value of the phenomenonTime parameter are selected.
      * @param resultTime       Only resources with a phenomenonTime property that intersects the value of the phenomenonTime parameter are selected.
      * @param foi              List of feature local IDs or unique IDs (URI).
-     *                         Only resources that are associated to a feature of interest that has one of the provided identifiers are selected.
+     *                         Only resources that are associated with a feature of interest that has one of the provided identifiers are selected.
      * @param observedProperty List of property local IDs or unique IDs (URI).
-     *                         Only resources that are associated to an observable property that has one of the provided identifiers are selected.
+     *                         Only resources that are associated with an observable property that has one of the provided identifiers are selected.
      * @param limit            This parameter limits the number of items that are presented in the response document.
      * @return A list of Observation objects.
      */
     public List<Observation> getObservationsList(List<String> id, TimeExtent phenomenonTime, TimeExtent resultTime, List<String> foi, List<String> observedProperty, int limit) {
         APIRequest request = new APIRequest();
-        request.setUrl(parentSystem.getParentNode().getHTTPPrefix() + getObservationsEndpoint());
+        request.setUrl(Utilities.joinPath(parentSystem.getParentNode().getHTTPPrefix(), getObservationsEndpoint()));
         request.setAuthorizationToken(parentSystem.getParentNode().getAuthorizationToken());
 
         Map<String, String> params = new HashMap<>();
@@ -173,7 +174,7 @@ public class OSHDatastream {
      */
     public boolean addObservation(Observation observation) {
         APIRequest request = new APIRequest();
-        request.setUrl(parentSystem.getParentNode().getHTTPPrefix() + getObservationsEndpoint());
+        request.setUrl(Utilities.joinPath(parentSystem.getParentNode().getHTTPPrefix(), getObservationsEndpoint()));
         request.setAuthorizationToken(parentSystem.getParentNode().getAuthorizationToken());
         request.setBody(observation.toJson());
         APIResponse response = request.post();

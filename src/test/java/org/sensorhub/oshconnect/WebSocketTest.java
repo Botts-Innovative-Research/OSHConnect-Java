@@ -1,13 +1,5 @@
 package org.sensorhub.oshconnect;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.sensorhub.oshconnect.TestConstants.IS_SECURE;
-import static org.sensorhub.oshconnect.TestConstants.PASSWORD;
-import static org.sensorhub.oshconnect.TestConstants.SENSOR_HUB_ROOT;
-import static org.sensorhub.oshconnect.TestConstants.USERNAME;
-
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
@@ -26,7 +18,10 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-// These tests requires a live OpenSensorHub instance to connect to.
+import static org.junit.jupiter.api.Assertions.*;
+import static org.sensorhub.oshconnect.TestConstants.*;
+
+// These tests require a live OpenSensorHub instance to connect to.
 // Check the constants in TestConstants.java to ensure they are correct
 // and uncomment the @Disabled annotation to run the test.
 @Disabled

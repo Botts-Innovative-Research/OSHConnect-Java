@@ -3,11 +3,10 @@ package org.sensorhub.oshconnect.datamodels;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.annotations.SerializedName;
-
-import java.util.List;
-
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+
+import java.util.List;
 
 @RequiredArgsConstructor
 public class Observation {
@@ -41,13 +40,13 @@ public class Observation {
     @Getter
     private final String phenomenonTime;
     /**
-     * Time at which the observation result was generated.
+     * The time at which the observation result was generated.
      */
     @Getter
     private final String resultTime;
     /**
      * Result of the observation.
-     * Must be valid according to the result schema provided in the datastream metadata.
+     * Must be valid, according to the result schema provided in the datastream metadata.
      */
     private final JsonElement result;
     /**
@@ -62,6 +61,14 @@ public class Observation {
     @Getter
     private final List<Link> links;
 
+    public static Observation fromJson(String json) {
+        return new Gson().fromJson(json, Observation.class);
+    }
+
+    public static Observation fromJson(byte[] json) {
+        return fromJson(new String(json));
+    }
+
     public String getResult() {
         return result.toString();
     }
@@ -73,13 +80,5 @@ public class Observation {
     @Override
     public String toString() {
         return toJson();
-    }
-
-    public static Observation fromJson(String json) {
-        return new Gson().fromJson(json, Observation.class);
-    }
-
-    public static Observation fromJson(byte[] json) {
-        return fromJson(new String(json));
     }
 }

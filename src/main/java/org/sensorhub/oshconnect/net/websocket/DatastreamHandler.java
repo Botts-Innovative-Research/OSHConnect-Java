@@ -1,5 +1,6 @@
 package org.sensorhub.oshconnect.net.websocket;
 
+import lombok.Getter;
 import org.sensorhub.oshconnect.DatastreamManager;
 import org.sensorhub.oshconnect.net.RequestFormat;
 import org.sensorhub.oshconnect.oshdatamodels.OSHDatastream;
@@ -9,8 +10,6 @@ import org.vast.util.TimeExtent;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
-
-import lombok.Getter;
 
 /**
  * A handler for multiple datastreams.
@@ -25,13 +24,13 @@ public abstract class DatastreamHandler implements DatastreamEventListener {
 
     /**
      * The format of the request.
-     * If null, the format will not be specified in the request, i.e. the data will be received in the default format.
+     * If null, the format will not be specified in the request, i.e., the data will be received in the default format.
      */
     @Getter
     private RequestFormat requestFormat;
     /**
      * The time period for the datastream.
-     * If null, the time period will not be specified in the request, i.e. will listen to the datastream in real-time.
+     * If null, the time period will not be specified in the request, i.e., will listen to the datastream in real-time.
      */
     @Getter
     private TimeExtent timeExtent;
@@ -158,7 +157,7 @@ public abstract class DatastreamHandler implements DatastreamEventListener {
 
     /**
      * Sets the format of the request.
-     * If null, the format will not be specified in the request, i.e. the data will be received in the default format.
+     * If null, the format will not be specified in the request, i.e., the data will be received in the default format.
      * Calling this method will reconnect to the datastream if it is already connected.
      *
      * @param requestFormat the format of the request.
@@ -189,7 +188,7 @@ public abstract class DatastreamHandler implements DatastreamEventListener {
 
     /**
      * Sets the time period for the datastream.
-     * If null, the time period will not be specified in the request, i.e. will listen to the datastream in real-time.
+     * If null, the time period will not be specified in the request, i.e., will listen to the datastream in real-time.
      * Calling this method will reconnect to the datastream if it is already connected.
      *
      * @param timeExtent the time period of the request.

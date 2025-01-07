@@ -1,5 +1,7 @@
 package org.sensorhub.oshconnect;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.sensorhub.oshconnect.config.ConfigManager;
 import org.sensorhub.oshconnect.config.ConfigManagerJson;
 import org.sensorhub.oshconnect.oshdatamodels.OSHControlStream;
@@ -10,9 +12,6 @@ import org.sensorhub.oshconnect.oshdatamodels.OSHSystem;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import lombok.Getter;
-import lombok.Setter;
-
 /**
  * OSHConnect is the main class for connecting to OpenSensorHub servers and managing datastreams.
  */
@@ -22,11 +21,6 @@ public class OSHConnect {
      * The name of the OSHConnect instance.
      */
     private final String name;
-    /**
-     * The configuration manager, used to export and import configuration data.
-     */
-    @Setter
-    private ConfigManager configManager = new ConfigManagerJson(this);
     /**
      * The node manager, used to create and manage connections to OpenSensorHub servers.
      */
@@ -39,6 +33,11 @@ public class OSHConnect {
      * The notification manager, used to notify listeners of changes to nodes, systems, and datastreams.
      */
     private final NotificationManager notificationManager;
+    /**
+     * The configuration manager, used to export and import configuration data.
+     */
+    @Setter
+    private ConfigManager configManager = new ConfigManagerJson(this);
 
     /**
      * Create a new OSHConnect instance.
@@ -65,7 +64,7 @@ public class OSHConnect {
      * If another node with the root URL already exists,
      * the existing node will be returned.
      *
-     * @param sensorHubRoot The root URL of the OpenSensorHub server, e.g. localhost:8181/sensorhub.
+     * @param sensorHubRoot The root URL of the OpenSensorHub server, e.g., localhost:8181/sensorhub.
      * @param isSecure      Flag indicating if the server is secured through TLS/SSL.
      * @param username      The username for the server, if authentication is required.
      * @param password      The password for the server, if authentication is required.

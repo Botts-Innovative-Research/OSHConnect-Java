@@ -1,5 +1,8 @@
 package org.sensorhub.oshconnect.time;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -8,12 +11,9 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
-import lombok.Getter;
-import lombok.Setter;
-
 /**
  * This class can be used in scenarios where events may be received out of order,
- * for example due to network latency or other delays.
+ * for example, due to network latency or other delays.
  * Events will be held in a buffer for a specified time period,
  * then served both in order and with respect to their timestamps.
  * <p>
@@ -54,8 +54,7 @@ public class TimeSynchronizer<T> {
     /**
      * @param eventConsumer A Consumer that processes events.
      *                      This is called when an event is ready to be processed,
-     *                      either immediately if time synchronization is disabled,
-     *                      or after time synchronization.
+     *                      either immediately if time synchronization is disabled or after time synchronization.
      */
     public TimeSynchronizer(Consumer<T> eventConsumer) {
         this.eventConsumer = eventConsumer;

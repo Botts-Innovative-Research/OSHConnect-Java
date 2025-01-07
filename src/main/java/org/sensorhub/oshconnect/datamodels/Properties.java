@@ -2,17 +2,16 @@ package org.sensorhub.oshconnect.datamodels;
 
 import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
-
-import java.util.List;
-
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+
+import java.util.List;
 
 @Getter
 @RequiredArgsConstructor
 public class Properties {
     /**
-     * Identifier of the type of feature, either a URI, a CURIE, or a simple token.
+     * Feature type identifier, either a URI, a CURIE, or a simple token.
      */
     private final String featureType;
     /**
@@ -20,11 +19,11 @@ public class Properties {
      */
     private final String uid;
     /**
-     * Human readable name of the feature.
+     * Human-readable name of the feature.
      */
     private final String name;
     /**
-     * Human readable description of the feature.
+     * Human-readable description of the feature.
      */
     private final String description;
     /**
@@ -36,7 +35,7 @@ public class Properties {
      */
     private final List<String> validTime;
     /**
-     * Link to the system kind description (i.e. its nature or specifications).
+     * Link to the system kind description (i.e., its nature or specifications).
      */
     @SerializedName("systemKind@link")
     private final Link systemKindLink;

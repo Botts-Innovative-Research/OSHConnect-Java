@@ -1,5 +1,6 @@
 package org.sensorhub.oshconnect.net.websocket;
 
+import lombok.Getter;
 import org.json.JSONObject;
 import org.sensorhub.oshconnect.net.RequestFormat;
 import org.sensorhub.oshconnect.oshdatamodels.OSHDatastream;
@@ -13,8 +14,6 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import lombok.Getter;
-
 /**
  * Listener for a single datastream.
  * Override the {@link #onStreamUpdate(DatastreamEventArgs)} method to handle the data received from the datastream.
@@ -23,26 +22,25 @@ import lombok.Getter;
 public abstract class DatastreamListener implements DatastreamEventListener {
     private static final String DATE_REGEX_TEXT = "\\d{4}-\\d{2}-\\d{2}T\\d{2}:";
     private static final String DATE_REGEX_XML = "<[^>]+>(\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d+Z)</[^>]+>";
-    private boolean isShutdown = false;
-
     /**
      * The datastream being listened to.
      */
     @Getter
     private final OSHDatastream datastream;
+    private boolean isShutdown = false;
     /**
      * The WebSocket connection to the datastream.
      */
     private WebSocketConnection webSocketConnection;
     /**
      * The format of the request.
-     * If null, the format will not be specified in the request, i.e. the data will be received in the default format.
+     * If null, the format will not be specified in the request, i.e., the data will be received in the default format.
      */
     @Getter
     private RequestFormat requestFormat;
     /**
      * The time period for the datastream.
-     * If null, the time period will not be specified in the request, i.e. will listen to the datastream in real-time.
+     * If null, the time period will not be specified in the request, i.e., will listen to the datastream in real-time.
      */
     @Getter
     private TimeExtent timeExtent;
@@ -202,7 +200,7 @@ public abstract class DatastreamListener implements DatastreamEventListener {
 
     /**
      * Sets the format of the request.
-     * If null, the format will not be specified in the request, i.e. the data will be received in the default format.
+     * If null, the format will not be specified in the request, i.e., the data will be received in the default format.
      * Calling this method will reconnect to the datastream if it is already connected.
      *
      * @param requestFormat the format of the request.
@@ -229,7 +227,7 @@ public abstract class DatastreamListener implements DatastreamEventListener {
 
     /**
      * Sets the time period for the datastream.
-     * If null, the time period will not be specified in the request, i.e. will listen to the datastream in real-time.
+     * If null, the time period will not be specified in the request, i.e., will listen to the datastream in real-time.
      * Calling this method will reconnect to the datastream if it is already connected.
      *
      * @param timeExtent the time period of the request.

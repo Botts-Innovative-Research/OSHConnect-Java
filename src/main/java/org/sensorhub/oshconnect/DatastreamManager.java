@@ -44,7 +44,7 @@ public class DatastreamManager {
 
     /**
      * Add a datastream handler to OSHConnect.
-     * This method is used to add a datastream handler that was created outside of the OSHConnect instance.
+     * This method is used to add a datastream handler created outside the OSHConnect instance.
      *
      * @param handler The datastream handler to add.
      */

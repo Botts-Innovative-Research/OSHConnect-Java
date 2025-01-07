@@ -1,7 +1,8 @@
 package org.sensorhub.oshconnect.oshdatamodels;
 
 import com.google.gson.Gson;
-
+import lombok.Getter;
+import lombok.Setter;
 import org.sensorhub.oshconnect.constants.Service;
 import org.sensorhub.oshconnect.datamodels.Observation;
 import org.sensorhub.oshconnect.datamodels.Properties;
@@ -10,24 +11,17 @@ import org.sensorhub.oshconnect.net.APIRequest;
 import org.sensorhub.oshconnect.net.APIResponse;
 import org.sensorhub.oshconnect.net.Protocol;
 import org.sensorhub.oshconnect.notification.INotificationSystem;
+import org.sensorhub.oshconnect.util.Utilities;
 import org.vast.util.Asserts;
 
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
-
-import lombok.Getter;
-import lombok.Setter;
+import java.util.*;
 
 /**
  * Class representing an OpenSensorHub server instance or node
  */
 public class OSHNode {
     /**
-     * The root URL of the OpenSensorHub server, i.e. localhost:8181/sensorhub
+     * The root URL of the OpenSensorHub server, i.e., localhost:8181/sensorhub
      */
     @Getter
     private final String sensorHubRoot;
@@ -41,6 +35,8 @@ public class OSHNode {
      */
     @Getter
     private final UUID uniqueId;
+    private final Set<INotificationSystem> systemNotificationListeners = new HashSet<>();
+    private final Set<OSHSystem> systems = new HashSet<>();
     /**
      * Friendly name for the server.
      */
@@ -55,8 +51,6 @@ public class OSHNode {
     @Getter
     @Setter
     private String authorizationToken;
-    private final Set<INotificationSystem> systemNotificationListeners = new HashSet<>();
-    private final Set<OSHSystem> systems = new HashSet<>();
 
     public OSHNode(String sensorHubRoot, boolean isSecure, String username, String password) {
         this(sensorHubRoot, isSecure, username, password, UUID.randomUUID());
@@ -74,6 +68,16 @@ public class OSHNode {
         this.isSecure = isSecure;
         this.uniqueId = uniqueId;
         setAuthorization(username, password);
+    }
+
+    /**
+     * Create an OSHNode object from a JSON string.
+     *
+     * @param json The JSON string.
+     * @return The OSHNode object.
+     */
+    public static OSHNode fromJson(String json) {
+        return new Gson().fromJson(json, OSHNode.class);
     }
 
     /**
@@ -127,7 +131,7 @@ public class OSHNode {
         SystemResource systemResourceNew = new SystemResource(null, properties);
 
         APIRequest request = new APIRequest();
-        request.setUrl(getHTTPPrefix() + getSystemsEndpoint());
+        request.setUrl(Utilities.joinPath(getHTTPPrefix(), getSystemsEndpoint()));
         request.setBody(systemResourceNew.toJson());
         if (authorizationToken != null) {
             request.setAuthorizationToken(authorizationToken);
@@ -166,7 +170,7 @@ public class OSHNode {
      */
     public boolean deleteSystem(OSHSystem system) {
         APIRequest request = new APIRequest();
-        request.setUrl(getHTTPPrefix() + getSystemsEndpoint() + "/" + system.getId());
+        request.setUrl(Utilities.joinPath(getHTTPPrefix(), getSystemsEndpoint(), system.getId()));
         if (authorizationToken != null) {
             request.setAuthorizationToken(authorizationToken);
         }
@@ -187,7 +191,7 @@ public class OSHNode {
      */
     private List<SystemResource> getSystemResourcesFromServer() {
         APIRequest request = new APIRequest();
-        request.setUrl(getHTTPPrefix() + getSystemsEndpoint());
+        request.setUrl(Utilities.joinPath(getHTTPPrefix(), getSystemsEndpoint()));
         if (authorizationToken != null) {
             request.setAuthorizationToken(authorizationToken);
         }
@@ -238,15 +242,15 @@ public class OSHNode {
     }
 
     public String getApiEndpoint() {
-        return sensorHubRoot + "/" + Service.API;
+        return Utilities.joinPath(sensorHubRoot, Service.API.getEndpoint());
     }
 
     public String getSystemsEndpoint() {
-        return getApiEndpoint() + "/systems";
+        return Utilities.joinPath(getApiEndpoint(), Service.SYSTEMS.getEndpoint());
     }
 
     public String getObservationsEndpoint() {
-        return getApiEndpoint() + "/observations";
+        return Utilities.joinPath(getApiEndpoint(), Service.OBSERVATIONS.getEndpoint());
     }
 
     /**
@@ -310,16 +314,6 @@ public class OSHNode {
     }
 
     /**
-     * Create an OSHNode object from a JSON string.
-     *
-     * @param json The JSON string.
-     * @return The OSHNode object.
-     */
-    public static OSHNode fromJson(String json) {
-        return new Gson().fromJson(json, OSHNode.class);
-    }
-
-    /**
      * Add a system notification listener.
      *
      * @param listener The listener.
@@ -367,7 +361,7 @@ public class OSHNode {
      */
     public String getObservation(String id) {
         APIRequest request = new APIRequest();
-        request.setUrl(getHTTPPrefix() + getObservationsEndpoint() + "/" + id);
+        request.setUrl(Utilities.joinPath(getHTTPPrefix(), getObservationsEndpoint(), id));
         request.setAuthorizationToken(authorizationToken);
         APIResponse response = request.get();
         return response.getResponseBody();
@@ -382,7 +376,7 @@ public class OSHNode {
      */
     public Observation getObservationObject(String id) {
         APIRequest request = new APIRequest();
-        request.setUrl(getHTTPPrefix() + getObservationsEndpoint() + "/" + id);
+        request.setUrl(Utilities.joinPath(getHTTPPrefix(), getObservationsEndpoint(), id));
         request.setAuthorizationToken(authorizationToken);
         APIResponse response = request.get();
         return response.getItem(Observation.class);
@@ -397,7 +391,7 @@ public class OSHNode {
      */
     public boolean updateObservation(String id, Observation observation) {
         APIRequest request = new APIRequest();
-        request.setUrl(getHTTPPrefix() + getObservationsEndpoint() + "/" + id);
+        request.setUrl(Utilities.joinPath(getHTTPPrefix(), getObservationsEndpoint(), id));
         request.setBody(observation.toJson());
         request.setAuthorizationToken(authorizationToken);
         APIResponse response = request.put();
@@ -412,7 +406,7 @@ public class OSHNode {
      */
     public boolean deleteObservation(String id) {
         APIRequest request = new APIRequest();
-        request.setUrl(getHTTPPrefix() + getObservationsEndpoint() + "/" + id);
+        request.setUrl(Utilities.joinPath(getHTTPPrefix(), getObservationsEndpoint(), id));
         request.setAuthorizationToken(authorizationToken);
         APIResponse response = request.delete();
         return response.isSuccessful();

@@ -2,11 +2,10 @@ package org.sensorhub.oshconnect.datamodels;
 
 import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
-
-import java.util.List;
-
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+
+import java.util.List;
 
 @Getter
 @RequiredArgsConstructor
@@ -16,11 +15,11 @@ public class DatastreamResource {
      */
     private final String id;
     /**
-     * Human readable name of the resource.
+     * Human-readable name of the resource.
      */
     private final String name;
     /**
-     * Human readable description of the resource.
+     * Human-readable description of the resource.
      */
     private final String description;
     /**
