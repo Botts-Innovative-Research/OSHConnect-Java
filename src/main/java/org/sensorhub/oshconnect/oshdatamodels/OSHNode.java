@@ -3,18 +3,20 @@ package org.sensorhub.oshconnect.oshdatamodels;
 import com.google.gson.Gson;
 import lombok.Getter;
 import lombok.Setter;
+import org.sensorhub.api.system.ISystemWithDesc;
+import org.sensorhub.impl.service.consys.client.ConSysApiClient;
+import org.sensorhub.impl.service.consys.resource.ResourceFormat;
 import org.sensorhub.oshconnect.constants.Service;
 import org.sensorhub.oshconnect.datamodels.Observation;
-import org.sensorhub.oshconnect.datamodels.Properties;
-import org.sensorhub.oshconnect.datamodels.SystemResource;
 import org.sensorhub.oshconnect.net.APIRequest;
 import org.sensorhub.oshconnect.net.APIResponse;
+import org.sensorhub.oshconnect.net.ConSysApiClientExtras;
 import org.sensorhub.oshconnect.net.Protocol;
 import org.sensorhub.oshconnect.notification.INotificationSystem;
 import org.sensorhub.oshconnect.util.Utilities;
-import org.vast.util.Asserts;
 
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Class representing an OpenSensorHub server instance or node
@@ -86,8 +88,8 @@ public class OSHNode {
      * @return The list of systems.
      */
     public List<OSHSystem> discoverSystems() {
-        List<SystemResource> systemResources = getSystemResourcesFromServer();
-        for (SystemResource systemResource : systemResources) {
+        List<ISystemWithDesc> systemResources = getSystemResourcesFromServer();
+        for (ISystemWithDesc systemResource : systemResources) {
             if (systems.stream().noneMatch(s -> s.getId().equals(systemResource.getId()))) {
                 addSystem(systemResource);
             }
@@ -100,53 +102,28 @@ public class OSHNode {
      * Create a system on the OpenSensorHub node and add it to the list of discovered systems.
      * If a system with the same UID already exists, it will be returned instead.
      *
-     * @param properties The properties of the system.
+     * @param physicalSystem The system resource.
      * @return The OSHSystem object for the created system or null if the system could not be created.
      */
-    public OSHSystem createSystem(Properties properties) {
-        String uid = properties.getUid();
+    public OSHSystem createSystem(ISystemWithDesc physicalSystem) {
+        String uid = physicalSystem.getUniqueIdentifier();
 
-        Asserts.checkNotNull(properties, "properties cannot be null");
-        Asserts.checkNotNullOrEmpty(uid, "properties.uid cannot be null");
-
-        // Check if this UID already exists and return it
-        for (OSHSystem system : systems) {
-            if (system.getSystemResource().getProperties().getUid().equals(uid)) {
-                System.out.println("System with UID " + uid + " already exists.");
-                return system;
-            }
+        var system = getSystemByUid(uid);
+        if (system != null) {
+            return system;
         }
 
-        // Check if this UID already exists on the server and return it
-        List<SystemResource> systemResources = getSystemResourcesFromServer();
-        for (SystemResource systemResource : systemResources) {
-            if (systemResource.getProperties().getUid().equals(uid)) {
-                System.out.println("System with UID " + uid + " already exists on the server.");
-                return addSystem(systemResource);
-            }
+        var conSys = ConSysApiClient
+                .newBuilder(Utilities.joinPath(getHTTPPrefix(), getApiEndpoint()))
+                .build()
+                .addSystem(physicalSystem);
+
+        try {
+            String id = conSys.get();
+            return getSystemById(id);
+        } catch (ExecutionException | InterruptedException e) {
+            return null;
         }
-
-        Asserts.checkNotNullOrEmpty(properties.getName(), "properties.name cannot be null or empty");
-
-        SystemResource systemResourceNew = new SystemResource(null, properties);
-
-        APIRequest request = new APIRequest();
-        request.setUrl(Utilities.joinPath(getHTTPPrefix(), getSystemsEndpoint()));
-        request.setBody(systemResourceNew.toJson());
-        if (authorizationToken != null) {
-            request.setAuthorizationToken(authorizationToken);
-        }
-        request.post();
-
-        // Find the system with the UID we just created
-        systemResources = getSystemResourcesFromServer();
-        for (SystemResource systemResource : systemResources) {
-            if (systemResource.getProperties().getUid().equals(uid)) {
-                return addSystem(systemResource);
-            }
-        }
-
-        return null;
     }
 
     /**
@@ -155,7 +132,7 @@ public class OSHNode {
      * @param systemResource The system resource.
      * @return The OSHSystem object for the added system.
      */
-    private OSHSystem addSystem(SystemResource systemResource) {
+    private OSHSystem addSystem(ISystemWithDesc systemResource) {
         OSHSystem system = new OSHSystem(this, systemResource);
         systems.add(system);
         notifySystemAdded(system);
@@ -189,18 +166,17 @@ public class OSHNode {
      *
      * @return The list of systems.
      */
-    private List<SystemResource> getSystemResourcesFromServer() {
-        APIRequest request = new APIRequest();
-        request.setUrl(Utilities.joinPath(getHTTPPrefix(), getSystemsEndpoint()));
-        if (authorizationToken != null) {
-            request.setAuthorizationToken(authorizationToken);
-        }
+    private List<ISystemWithDesc> getSystemResourcesFromServer() {
+        var conSys = ConSysApiClientExtras
+                .newBuilder(Utilities.joinPath(getHTTPPrefix(), getApiEndpoint()))
+                .build()
+                .getSystems(ResourceFormat.JSON);
 
-        APIResponse response = request.get();
-        if (response.isSuccessful()) {
-            return response.getItems(SystemResource.class);
+        try {
+            return conSys.get();
+        } catch (ExecutionException | InterruptedException e) {
+            return new ArrayList<>();
         }
-        return new ArrayList<>();
     }
 
     /**
@@ -410,5 +386,54 @@ public class OSHNode {
         request.setAuthorizationToken(authorizationToken);
         APIResponse response = request.delete();
         return response.isSuccessful();
+    }
+
+    private OSHSystem getSystemByUid(String uid) {
+        // Check if this UID already exists and return it
+        for (OSHSystem system : systems) {
+            if (system.getSystemResource().getId().equals(uid)) {
+                return system;
+            }
+        }
+
+        // Check if this UID already exists on the server and return it
+        try {
+            var conSys = ConSysApiClient
+                    .newBuilder(Utilities.joinPath(getHTTPPrefix(), getApiEndpoint()))
+                    .build()
+                    .getSystemByUid(uid, ResourceFormat.JSON);
+            if (conSys != null) {
+                var systemResource = conSys.get();
+                return addSystem(systemResource);
+            }
+        } catch (ExecutionException | InterruptedException e) {
+            return null;
+        }
+
+        return null;
+    }
+
+    private OSHSystem getSystemById(String id) {
+        // Check if this ID already exists and return it
+        for (OSHSystem system : systems) {
+            if (system.getId().equals(id)) {
+                return system;
+            }
+        }
+
+        try {
+            var conSys = ConSysApiClient
+                    .newBuilder(Utilities.joinPath(getHTTPPrefix(), getApiEndpoint()))
+                    .build()
+                    .getSystemById(id, ResourceFormat.JSON);
+
+            if (conSys != null) {
+                return addSystem(conSys.get());
+            }
+        } catch (ExecutionException | InterruptedException e) {
+            return null;
+        }
+
+        return null;
     }
 }

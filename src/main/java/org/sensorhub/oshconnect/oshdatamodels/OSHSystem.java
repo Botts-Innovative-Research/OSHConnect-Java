@@ -2,10 +2,12 @@ package org.sensorhub.oshconnect.oshdatamodels;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import org.sensorhub.api.system.ISystemWithDesc;
+import org.sensorhub.impl.service.consys.client.ConSysApiClient;
+import org.sensorhub.impl.service.consys.resource.ResourceFormat;
 import org.sensorhub.oshconnect.constants.Service;
 import org.sensorhub.oshconnect.datamodels.ControlStreamResource;
 import org.sensorhub.oshconnect.datamodels.DatastreamResource;
-import org.sensorhub.oshconnect.datamodels.SystemResource;
 import org.sensorhub.oshconnect.net.APIRequest;
 import org.sensorhub.oshconnect.net.APIResponse;
 import org.sensorhub.oshconnect.notification.INotificationControlStream;
@@ -28,9 +30,9 @@ public class OSHSystem {
     private final Set<INotificationDatastream> datastreamNotificationListeners = new HashSet<>();
     private final Set<INotificationControlStream> controlStreamNotificationListeners = new HashSet();
     @Getter
-    private SystemResource systemResource;
+    private ISystemWithDesc systemResource;
 
-    public OSHSystem(OSHNode parentNode, SystemResource systemResource) {
+    public OSHSystem(OSHNode parentNode, ISystemWithDesc systemResource) {
         this.parentNode = parentNode;
         this.systemResource = systemResource;
     }
@@ -83,29 +85,44 @@ public class OSHSystem {
         return getControlStreams();
     }
 
-    /**
-     * Update the system with new properties.
-     * Note: This method will update the systemResource field with the new properties returned from the server,
-     * not the properties passed in.
-     *
-     * @param systemResource The new properties.
-     */
-    public void updateSystem(SystemResource systemResource) {
-        APIRequest request = new APIRequest();
-        request.setUrl(Utilities.joinPath(parentNode.getHTTPPrefix(), parentNode.getSystemsEndpoint(), getId()));
-        request.setBody(systemResource.toJson());
-        request.setAuthorizationToken(parentNode.getAuthorizationToken());
-        APIResponse response = request.put();
-        if (response.isSuccessful()) {
-            request = new APIRequest();
+    public boolean updateSystem(ISystemWithDesc systemResource) {
+        var conSys = ConSysApiClient
+                .newBuilder(Utilities.joinPath(parentNode.getHTTPPrefix(), parentNode.getApiEndpoint()))
+                .build()
+                .updateSystem(getId(), systemResource);
 
-            request.setUrl(Utilities.joinPath(parentNode.getHTTPPrefix(), parentNode.getSystemsEndpoint(), getId()));
-            if (parentNode.getAuthorizationToken() != null) {
-                request.setAuthorizationToken(parentNode.getAuthorizationToken());
+        boolean success = false;
+        try {
+            Integer result = conSys.get();
+            if (result != null && result >= 200 && result < 300) {
+                success = true;
             }
+        } catch (Exception e) {
+            return false;
+        }
 
-            response = request.get();
-            this.systemResource = response.getItem(SystemResource.class);
+        if (success) {
+            return refreshSystem();
+        }
+
+        return false;
+    }
+
+    /**
+     * Refresh the system properties from the server.
+     *
+     * @return True if the refresh was successful, false otherwise.
+     */
+    public boolean refreshSystem() {
+        var conSys = ConSysApiClient
+                .newBuilder(Utilities.joinPath(parentNode.getHTTPPrefix(), parentNode.getApiEndpoint()))
+                .build()
+                .getSystemById(getId(), ResourceFormat.JSON);
+        try {
+            this.systemResource = conSys.get();
+            return true;
+        } catch (Exception e) {
+            return false;
         }
     }
 

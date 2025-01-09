@@ -1,16 +1,10 @@
 package org.sensorhub.oshconnect;
 
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.sensorhub.oshconnect.datamodels.Properties;
-import org.sensorhub.oshconnect.datamodels.SystemResource;
 import org.sensorhub.oshconnect.net.websocket.DatastreamEventArgs;
 import org.sensorhub.oshconnect.net.websocket.DatastreamHandler;
 import org.sensorhub.oshconnect.oshdatamodels.OSHDatastream;
-import org.sensorhub.oshconnect.oshdatamodels.OSHNode;
-import org.sensorhub.oshconnect.oshdatamodels.OSHSystem;
 import org.vast.util.TimeExtent;
 
 import java.time.Instant;
@@ -18,29 +12,13 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.sensorhub.oshconnect.TestConstants.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 // These tests require a live OpenSensorHub instance to connect to.
 // Check the constants in TestConstants.java to ensure they are correct
 // and uncomment the @Disabled annotation to run the test.
 @Disabled
-class WebSocketTest {
-    long previousTimestamp;
-    private OSHConnect oshConnect;
-    private OSHNode node;
-
-    @BeforeEach
-    void setUp() {
-        oshConnect = new OSHConnect();
-        node = oshConnect.createNode(SENSOR_HUB_ROOT, IS_SECURE, USERNAME, PASSWORD);
-    }
-
-    @AfterEach
-    void tearDown() {
-        oshConnect.shutdown();
-    }
-
+class WebSocketTest extends TestBase {
     @Test
     void testControlStreams() {
         System.out.println();
@@ -55,41 +33,6 @@ class WebSocketTest {
         }
 
         assertFalse(controlStreams.isEmpty(), "No control streams found.");
-    }
-
-    @Test
-    void testAddUpdateDeleteSystem() {
-        System.out.println();
-        System.out.println("Add, update, and delete system test");
-
-        //Create a new system
-        Properties properties = new Properties(null, "urn:sensor:cat_sensor_001", "Cat Sensor", "A sensor that measures the number of cats in the room.", null, List.of("2024-12-06T18:57:51.968Z", "now"), null);
-        OSHSystem newSystem = node.createSystem(properties);
-        assertNotNull(newSystem);
-        String systemId = newSystem.getId();
-
-        // Check if the system was created
-        List<OSHSystem> systems = node.getSystems();
-        assertTrue(systems.stream().anyMatch(s -> s.getSystemResource().getId().equals(systemId)));
-        System.out.println("System created " + systemId + ": " + newSystem.getSystemResource().getProperties().getName());
-
-        // Discover all systems
-        systems = oshConnect.discoverSystems();
-        for (OSHSystem system : systems) {
-            if (system.getSystemResource().getId().equals(systemId)) {
-                System.out.println("System discovered " + systemId + ": " + system.getSystemResource().getProperties().getName());
-                newSystem = system;
-            }
-        }
-
-        // Update the system
-        SystemResource updatedProperties = new SystemResource(systemId, new Properties(null, "urn:sensor:cat_sensor_001", "Cat Sensor", null, "asdfg", List.of("2024-12-06T18:57:51.968Z", "now"), null));
-        newSystem.updateSystem(updatedProperties);
-
-        // Delete the system
-        assertTrue(node.deleteSystem(newSystem));
-        System.out.println("System deleted " + systemId + ": " + newSystem.getSystemResource().getProperties().getName());
-        System.out.println();
     }
 
     @Test
