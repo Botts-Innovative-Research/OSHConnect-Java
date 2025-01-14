@@ -87,7 +87,7 @@ public class OSHNode {
      *
      * @return The list of systems.
      */
-    public List<OSHSystem> discoverSystems() {
+    public List<OSHSystem> discoverSystems() throws ExecutionException, InterruptedException {
         List<ISystemWithDesc> systemResources = getSystemResourcesFromServer();
         for (ISystemWithDesc systemResource : systemResources) {
             if (systems.stream().noneMatch(s -> s.getId().equals(systemResource.getId()))) {
@@ -105,7 +105,7 @@ public class OSHNode {
      * @param physicalSystem The system resource.
      * @return The OSHSystem object for the created system or null if the system could not be created.
      */
-    public OSHSystem createSystem(ISystemWithDesc physicalSystem) {
+    public OSHSystem createSystem(ISystemWithDesc physicalSystem) throws ExecutionException, InterruptedException {
         String uid = physicalSystem.getUniqueIdentifier();
 
         var system = getSystemByUid(uid);
@@ -118,12 +118,8 @@ public class OSHNode {
                 .build()
                 .addSystem(physicalSystem);
 
-        try {
-            String id = conSys.get();
-            return getSystemById(id);
-        } catch (ExecutionException | InterruptedException e) {
-            return null;
-        }
+        String id = conSys.get();
+        return getSystemById(id);
     }
 
     /**
@@ -166,17 +162,14 @@ public class OSHNode {
      *
      * @return The list of systems.
      */
-    private List<ISystemWithDesc> getSystemResourcesFromServer() {
+    private List<ISystemWithDesc> getSystemResourcesFromServer() throws ExecutionException, InterruptedException {
         var conSys = ConSysApiClientExtras
                 .newBuilder(Utilities.joinPath(getHTTPPrefix(), getApiEndpoint()))
                 .build()
                 .getSystems(ResourceFormat.JSON);
 
-        try {
-            return conSys.get();
-        } catch (ExecutionException | InterruptedException e) {
-            return new ArrayList<>();
-        }
+        System.out.println("asd");
+        return conSys.get();
     }
 
     /**
@@ -187,7 +180,7 @@ public class OSHNode {
      *
      * @return The list of datastreams.
      */
-    public List<OSHDatastream> discoverDatastreams() {
+    public List<OSHDatastream> discoverDatastreams() throws ExecutionException, InterruptedException {
         for (OSHSystem system : systems) {
             system.discoverDataStreams();
         }
@@ -388,7 +381,7 @@ public class OSHNode {
         return response.isSuccessful();
     }
 
-    private OSHSystem getSystemByUid(String uid) {
+    private OSHSystem getSystemByUid(String uid) throws ExecutionException, InterruptedException {
         // Check if this UID already exists and return it
         for (OSHSystem system : systems) {
             if (system.getSystemResource().getId().equals(uid)) {
@@ -397,23 +390,21 @@ public class OSHNode {
         }
 
         // Check if this UID already exists on the server and return it
-        try {
-            var conSys = ConSysApiClient
-                    .newBuilder(Utilities.joinPath(getHTTPPrefix(), getApiEndpoint()))
-                    .build()
-                    .getSystemByUid(uid, ResourceFormat.JSON);
-            if (conSys != null) {
-                var systemResource = conSys.get();
+        var conSys = ConSysApiClient
+                .newBuilder(Utilities.joinPath(getHTTPPrefix(), getApiEndpoint()))
+                .build()
+                .getSystemByUid(uid, ResourceFormat.JSON);
+        if (conSys != null) {
+            var systemResource = conSys.get();
+            if (systemResource != null) {
                 return addSystem(systemResource);
             }
-        } catch (ExecutionException | InterruptedException e) {
-            return null;
         }
 
         return null;
     }
 
-    private OSHSystem getSystemById(String id) {
+    private OSHSystem getSystemById(String id) throws ExecutionException, InterruptedException {
         // Check if this ID already exists and return it
         for (OSHSystem system : systems) {
             if (system.getId().equals(id)) {
@@ -421,17 +412,13 @@ public class OSHNode {
             }
         }
 
-        try {
-            var conSys = ConSysApiClient
-                    .newBuilder(Utilities.joinPath(getHTTPPrefix(), getApiEndpoint()))
-                    .build()
-                    .getSystemById(id, ResourceFormat.JSON);
+        var conSys = ConSysApiClient
+                .newBuilder(Utilities.joinPath(getHTTPPrefix(), getApiEndpoint()))
+                .build()
+                .getSystemById(id, ResourceFormat.JSON);
 
-            if (conSys != null) {
-                return addSystem(conSys.get());
-            }
-        } catch (ExecutionException | InterruptedException e) {
-            return null;
+        if (conSys != null) {
+            return addSystem(conSys.get());
         }
 
         return null;

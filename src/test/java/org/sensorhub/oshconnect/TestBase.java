@@ -5,7 +5,9 @@ import com.google.gson.GsonBuilder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.sensorhub.api.common.SensorHubException;
+import org.sensorhub.api.data.DataStreamInfo;
 import org.sensorhub.api.database.IObsSystemDatabase;
+import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.ModuleEvent;
 import org.sensorhub.impl.SensorHub;
@@ -14,7 +16,11 @@ import org.sensorhub.impl.service.HttpServer;
 import org.sensorhub.impl.service.HttpServerConfig;
 import org.sensorhub.impl.service.consys.ConSysApiService;
 import org.sensorhub.impl.service.consys.ConSysApiServiceConfig;
+import org.sensorhub.impl.service.consys.sensorml.SystemAdapter;
 import org.sensorhub.oshconnect.oshdatamodels.OSHNode;
+import org.vast.data.TextEncodingImpl;
+import org.vast.sensorML.SMLHelper;
+import org.vast.swe.helper.GeoPosHelper;
 
 import java.io.File;
 import java.io.IOException;
@@ -85,5 +91,39 @@ public class TestBase {
         }
 
         oshConnect.shutdown();
+    }
+
+    protected SystemAdapter newSystem() {
+        return newSystem("Cat Sensor", "A sensor that measures cats in the room.");
+    }
+
+    protected SystemAdapter newSystem(String name, String description) {
+        var sys = new SMLHelper().createPhysicalSystem()
+                .uniqueID("urn:sensor:cat_sensor_001")
+                .name(name)
+                .description(description)
+                .build();
+
+
+        return new SystemAdapter(sys);
+    }
+
+    protected DataStreamInfo newDataStreamInfo() {
+        return newDataStreamInfo("Cat Sensor Datastream", "Position of cats in the room.");
+    }
+
+    protected DataStreamInfo newDataStreamInfo(String name, String description) {
+        var swe = new GeoPosHelper();
+        var recordStruct = swe.createLocationVectorLLA()
+                .name("pos")
+                .build();
+
+        return new DataStreamInfo.Builder()
+                .withSystem(FeatureId.NULL_FEATURE)
+                .withName(name)
+                .withDescription(description)
+                .withRecordDescription(recordStruct)
+                .withRecordEncoding(new TextEncodingImpl())
+                .build();
     }
 }

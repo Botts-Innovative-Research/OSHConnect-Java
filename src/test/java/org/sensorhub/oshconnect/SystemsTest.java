@@ -1,49 +1,37 @@
 package org.sensorhub.oshconnect;
 
 import org.junit.jupiter.api.Test;
-import org.sensorhub.impl.service.consys.sensorml.SystemAdapter;
-import org.vast.sensorML.SMLHelper;
+
+import java.util.concurrent.ExecutionException;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class SystemsTest extends TestBase {
     @Test
-    void testCreateSystem() {
+    void testCreateSystem() throws ExecutionException, InterruptedException {
         var system = node.createSystem(newSystem());
         assertNotNull(system);
+        assertNotNull(system.getSystemResource());
     }
 
     @Test
-    void testUpdateSystem() {
+    void testUpdateSystem() throws ExecutionException, InterruptedException {
         var system = node.createSystem(newSystem());
         assertNotNull(system);
-        system.updateSystem(newSystem("Updated Cat Sensor", "An updated sensor that measures the number of cats in the room."));
-        assertEquals("Updated Cat Sensor", system.getSystemResource().getName());
-        assertEquals("An updated sensor that measures the number of cats in the room.", system.getSystemResource().getDescription());
+        var result = system.updateSystem(newSystem("Updated Name", "Updated Description"));
+        assertTrue(result);
+        assertEquals("Updated Name", system.getSystemResource().getName());
+        assertEquals("Updated Description", system.getSystemResource().getDescription());
     }
 
     @Test
-    void testDeleteSystem() {
+    void testDeleteSystem() throws ExecutionException, InterruptedException {
         var system = node.createSystem(newSystem());
         assertNotNull(system);
-        node.deleteSystem(system);
+        var result = node.deleteSystem(system);
+        assertTrue(result);
         var systems = node.getSystems();
         assertNotNull(systems);
         assertFalse(systems.stream().anyMatch(s -> s.getSystemResource().getId().equals(system.getSystemResource().getId())));
-    }
-
-    private SystemAdapter newSystem() {
-        return newSystem("Cat Sensor", "A sensor that measures the number of cats in the room.");
-    }
-
-    private SystemAdapter newSystem(String name, String description) {
-        var sys = new SMLHelper().createPhysicalSystem()
-                .uniqueID("urn:sensor:cat_sensor_001")
-                .name(name)
-                .description(description)
-                .build();
-
-
-        return new SystemAdapter(sys);
     }
 }

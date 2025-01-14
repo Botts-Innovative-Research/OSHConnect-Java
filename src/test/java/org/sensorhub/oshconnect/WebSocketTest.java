@@ -10,6 +10,7 @@ import org.vast.util.TimeExtent;
 import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -20,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 @Disabled
 class WebSocketTest extends TestBase {
     @Test
-    void testControlStreams() {
+    void testControlStreams() throws ExecutionException, InterruptedException {
         System.out.println();
         System.out.println("Control stream test");
 
@@ -36,7 +37,7 @@ class WebSocketTest extends TestBase {
     }
 
     @Test
-    void testDatastreamListener() throws InterruptedException {
+    void testDatastreamListener() throws InterruptedException, ExecutionException {
         System.out.println();
         System.out.println("Datastream listener test");
 
@@ -70,7 +71,7 @@ class WebSocketTest extends TestBase {
     }
 
     private void onStreamUpdate(DatastreamEventArgs args) {
-        var datastreamId = args.getDatastream().getDatastreamResource().getId();
+        var datastreamId = args.getDatastream().getId();
         var timestamp = args.getTimestamp();
 
         String message = String.format("onStreamUpdate: timestamp=%s datastreamId=%s", timestamp, datastreamId);

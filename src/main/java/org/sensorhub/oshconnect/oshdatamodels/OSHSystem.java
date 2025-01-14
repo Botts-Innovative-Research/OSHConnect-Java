@@ -1,15 +1,15 @@
 package org.sensorhub.oshconnect.oshdatamodels;
 
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
+import org.sensorhub.api.data.DataStreamInfo;
 import org.sensorhub.api.system.ISystemWithDesc;
 import org.sensorhub.impl.service.consys.client.ConSysApiClient;
 import org.sensorhub.impl.service.consys.resource.ResourceFormat;
 import org.sensorhub.oshconnect.constants.Service;
 import org.sensorhub.oshconnect.datamodels.ControlStreamResource;
-import org.sensorhub.oshconnect.datamodels.DatastreamResource;
 import org.sensorhub.oshconnect.net.APIRequest;
 import org.sensorhub.oshconnect.net.APIResponse;
+import org.sensorhub.oshconnect.net.ConSysApiClientExtras;
 import org.sensorhub.oshconnect.notification.INotificationControlStream;
 import org.sensorhub.oshconnect.notification.INotificationDatastream;
 import org.sensorhub.oshconnect.util.Utilities;
@@ -17,11 +17,11 @@ import org.sensorhub.oshconnect.util.Utilities;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Class representing an OpenSensorHub system.
  */
-@RequiredArgsConstructor
 public class OSHSystem {
     @Getter
     private final OSHNode parentNode;
@@ -42,22 +42,20 @@ public class OSHSystem {
      *
      * @return The list of datastreams.
      */
-    public List<OSHDatastream> discoverDataStreams() {
-        APIRequest request = new APIRequest();
-        request.setUrl(Utilities.joinPath(parentNode.getHTTPPrefix(), getDatastreamsEndpoint()));
-        request.setAuthorizationToken(parentNode.getAuthorizationToken());
+    public List<OSHDatastream> discoverDataStreams() throws ExecutionException, InterruptedException {
+        var conSys = ConSysApiClientExtras
+                .newBuilder(Utilities.joinPath(parentNode.getHTTPPrefix(), parentNode.getApiEndpoint()))
+                .build()
+                .getDatastreams(ResourceFormat.JSON);
 
-        APIResponse response = request.get();
-        List<DatastreamResource> datastreamResources = response.getItems(DatastreamResource.class);
-
-        for (DatastreamResource datastreamResource : datastreamResources) {
-            if (datastreams.stream().noneMatch(ds -> ds.getDatastreamResource().getId().equals(datastreamResource.getId()))) {
-                OSHDatastream datastream = new OSHDatastream(datastreamResource, this);
-                datastreams.add(datastream);
+        var streams = conSys.get();
+        for (var entry : streams.entrySet()) {
+            if (this.datastreams.stream().noneMatch(ds -> ds.getId().equals(entry.getKey()))) {
+                OSHDatastream datastream = new OSHDatastream(this, entry.getKey(), entry.getValue());
+                this.datastreams.add(datastream);
                 notifyDatastreamAdded(datastream);
             }
         }
-
         return getDatastreams();
     }
 
@@ -74,31 +72,29 @@ public class OSHSystem {
         APIResponse response = request.get();
         List<ControlStreamResource> controlStreamResources = response.getItems(ControlStreamResource.class);
 
-        for (ControlStreamResource controlStreamResource : controlStreamResources) {
-            if (datastreams.stream().noneMatch(ds -> ds.getDatastreamResource().getId().equals(controlStreamResource.getId()))) {
-                OSHControlStream controlStream = new OSHControlStream(controlStreamResource, this);
-                controlStreams.add(controlStream);
-                notifyControlStreamAdded(controlStream);
-            }
-        }
+        // TODO: fix this
+//        for (ControlStreamResource controlStreamResource : controlStreamResources) {
+//            if (datastreams.stream().noneMatch(ds -> ds.getDatastreamResource().getId().equals(controlStreamResource.getId()))) {
+//                OSHControlStream controlStream = new OSHControlStream(controlStreamResource, this);
+//                controlStreams.add(controlStream);
+//                notifyControlStreamAdded(controlStream);
+//            }
+//        }
 
         return getControlStreams();
     }
 
-    public boolean updateSystem(ISystemWithDesc systemResource) {
+    public boolean updateSystem(ISystemWithDesc systemResource) throws ExecutionException, InterruptedException {
         var conSys = ConSysApiClient
                 .newBuilder(Utilities.joinPath(parentNode.getHTTPPrefix(), parentNode.getApiEndpoint()))
                 .build()
                 .updateSystem(getId(), systemResource);
 
         boolean success = false;
-        try {
-            Integer result = conSys.get();
-            if (result != null && result >= 200 && result < 300) {
-                success = true;
-            }
-        } catch (Exception e) {
-            return false;
+
+        Integer result = conSys.get();
+        if (result != null && result >= 200 && result < 300) {
+            success = true;
         }
 
         if (success) {
@@ -113,17 +109,18 @@ public class OSHSystem {
      *
      * @return True if the refresh was successful, false otherwise.
      */
-    public boolean refreshSystem() {
+    public boolean refreshSystem() throws ExecutionException, InterruptedException {
         var conSys = ConSysApiClient
                 .newBuilder(Utilities.joinPath(parentNode.getHTTPPrefix(), parentNode.getApiEndpoint()))
                 .build()
                 .getSystemById(getId(), ResourceFormat.JSON);
-        try {
-            this.systemResource = conSys.get();
-            return true;
-        } catch (Exception e) {
-            return false;
+        var newSystemResource = conSys.get();
+
+        if (newSystemResource != null) {
+            systemResource = newSystemResource;
         }
+
+        return newSystemResource != null;
     }
 
     /**
@@ -132,22 +129,44 @@ public class OSHSystem {
      * @param datastreamResource The datastream properties.
      * @return The new datastream or null if the creation failed.
      */
-    public OSHDatastream createDatastream(DatastreamResource datastreamResource) {
-        APIRequest request = new APIRequest();
-        request.setUrl(Utilities.joinPath(parentNode.getHTTPPrefix(), getDatastreamsEndpoint()));
-        request.setBody(datastreamResource.toJson());
-        request.setAuthorizationToken(parentNode.getAuthorizationToken());
-        APIResponse response = request.post();
-        if (response.isSuccessful()) {
-            DatastreamResource newResource = response.getItem(DatastreamResource.class);
-            OSHDatastream datastream = new OSHDatastream(newResource, this);
+    public OSHDatastream createDatastream(DataStreamInfo datastreamResource) throws ExecutionException, InterruptedException {
+        var conSys = ConSysApiClient
+                .newBuilder(Utilities.joinPath(parentNode.getHTTPPrefix(), parentNode.getApiEndpoint()))
+                .build()
+                .addDataStream(getId(), datastreamResource);
+
+        String id = conSys.get();
+        if (id != null) {
+            OSHDatastream datastream = new OSHDatastream(this, id, datastreamResource);
             datastreams.add(datastream);
             notifyDatastreamAdded(datastream);
             return datastream;
-        } else {
-            System.out.println("Failed to create datastream: " + response.getResponseMessage());
         }
+
         return null;
+    }
+
+    /**
+     * Delete a datastream associated with the system.
+     *
+     * @param datastream The datastream to delete.
+     * @return True if the deletion was successful, false otherwise.
+     */
+    public boolean deleteDatastream(OSHDatastream datastream) throws ExecutionException, InterruptedException {
+        var conSys = ConSysApiClientExtras
+                .newBuilder(Utilities.joinPath(parentNode.getHTTPPrefix(), parentNode.getApiEndpoint()))
+                .build()
+                .deleteDatastream(datastream.getId());
+        Integer result = conSys.get();
+
+        boolean success = result != null && result >= 200 && result < 300;
+
+        if (success) {
+            datastreams.remove(datastream);
+            notifyDatastreamRemoved(datastream);
+        }
+
+        return success;
     }
 
     /**

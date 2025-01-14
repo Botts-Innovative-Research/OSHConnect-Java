@@ -10,6 +10,7 @@ import org.sensorhub.oshconnect.oshdatamodels.OSHNode;
 import org.sensorhub.oshconnect.oshdatamodels.OSHSystem;
 
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 /**
@@ -83,8 +84,10 @@ public class OSHConnect {
      *
      * @return A list of all systems discovered by OSHConnect.
      */
-    public List<OSHSystem> discoverSystems() {
-        nodeManager.getNodes().forEach(OSHNode::discoverSystems);
+    public List<OSHSystem> discoverSystems() throws ExecutionException, InterruptedException {
+        for (OSHNode node : nodeManager.getNodes()) {
+            node.discoverSystems();
+        }
         return getSystems();
     }
 
@@ -96,8 +99,12 @@ public class OSHConnect {
      *
      * @return A list of all data streams discovered by OSHConnect.
      */
-    public List<OSHDatastream> discoverDatastreams() {
-        nodeManager.getNodes().forEach(OSHNode::discoverDatastreams);
+    public List<OSHDatastream> discoverDatastreams() throws ExecutionException, InterruptedException {
+        for (OSHNode node : nodeManager.getNodes()) {
+            for (OSHSystem system : node.getSystems()) {
+                system.discoverDataStreams();
+            }
+        }
         return getDatastreams();
     }
 

@@ -1,27 +1,32 @@
 package org.sensorhub.oshconnect.oshdatamodels;
 
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
+import org.sensorhub.api.data.IDataStreamInfo;
+import org.sensorhub.impl.service.consys.client.ConSysApiClient;
+import org.sensorhub.impl.service.consys.resource.ResourceFormat;
 import org.sensorhub.oshconnect.constants.Service;
-import org.sensorhub.oshconnect.datamodels.DatastreamResource;
 import org.sensorhub.oshconnect.datamodels.Observation;
 import org.sensorhub.oshconnect.net.APIRequest;
 import org.sensorhub.oshconnect.net.APIResponse;
+import org.sensorhub.oshconnect.net.ConSysApiClientExtras;
 import org.sensorhub.oshconnect.util.Utilities;
 import org.vast.util.TimeExtent;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 @Getter
-@RequiredArgsConstructor
 public class OSHDatastream {
-    private final DatastreamResource datastreamResource;
     private final OSHSystem parentSystem;
+    private final String id;
+    private IDataStreamInfo datastreamResource;
 
-    public String getId() {
-        return datastreamResource.getId();
+    public OSHDatastream(OSHSystem parentSystem, String id, IDataStreamInfo datastreamResource) {
+        this.parentSystem = parentSystem;
+        this.id = id;
+        this.datastreamResource = datastreamResource;
     }
 
     /**
@@ -167,17 +172,45 @@ public class OSHDatastream {
     }
 
     /**
-     * Adds an observation to this datastream.
+     * Push an observation to this datastream.
      *
      * @param observation The observation to add.
      * @return true if the observation was added successfully, false otherwise.
      */
-    public boolean addObservation(Observation observation) {
+    public boolean pushObservation(Observation observation) {
         APIRequest request = new APIRequest();
         request.setUrl(Utilities.joinPath(parentSystem.getParentNode().getHTTPPrefix(), getObservationsEndpoint()));
         request.setAuthorizationToken(parentSystem.getParentNode().getAuthorizationToken());
         request.setBody(observation.toJson());
         APIResponse response = request.post();
         return response.isSuccessful();
+    }
+
+    public boolean updateDatastream(IDataStreamInfo dataStreamInfo) throws ExecutionException, InterruptedException {
+        var conSys = ConSysApiClientExtras
+                .newBuilder(Utilities.joinPath(parentSystem.getParentNode().getHTTPPrefix(), parentSystem.getParentNode().getApiEndpoint()))
+                .build()
+                .updateDataStream(id, dataStreamInfo);
+        Integer response = conSys.get();
+        boolean success = response != null && response >= 200 && response < 300;
+
+        if (success) {
+            return refreshDatastream();
+        }
+        return false;
+    }
+
+    public boolean refreshDatastream() throws ExecutionException, InterruptedException {
+        var conSys = ConSysApiClient
+                .newBuilder(Utilities.joinPath(parentSystem.getParentNode().getHTTPPrefix(), parentSystem.getParentNode().getApiEndpoint()))
+                .build()
+                .getDatastreamById(id, ResourceFormat.JSON, true);
+        IDataStreamInfo response = conSys.get();
+        boolean success = response != null;
+
+        if (success) {
+            datastreamResource = response;
+        }
+        return success;
     }
 }
