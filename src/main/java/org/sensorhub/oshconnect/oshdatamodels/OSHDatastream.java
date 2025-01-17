@@ -6,6 +6,7 @@ import org.sensorhub.impl.service.consys.client.ConSysApiClient;
 import org.sensorhub.impl.service.consys.resource.ResourceFormat;
 import org.sensorhub.oshconnect.constants.Service;
 import org.sensorhub.oshconnect.datamodels.Observation;
+import org.sensorhub.oshconnect.datamodels.ObservationData;
 import org.sensorhub.oshconnect.net.APIRequest;
 import org.sensorhub.oshconnect.net.APIResponse;
 import org.sensorhub.oshconnect.net.ConSysApiClientExtras;
@@ -36,6 +37,18 @@ public class OSHDatastream {
      */
     public String getObservationsEndpoint() {
         return Utilities.joinPath(parentSystem.getParentNode().getApiEndpoint(), Service.DATASTREAMS.getEndpoint(), getId(), Service.OBSERVATIONS.getEndpoint());
+    }
+
+    /**
+     * Returns the observation with the specified ID.
+     *
+     * @param observationId The ID of the observation to get.
+     * @return The observation with the specified ID.
+     * @throws ExecutionException   If the execution of the request fails.
+     * @throws InterruptedException If the execution of the request is interrupted.
+     */
+    public ObservationData getObservation(String observationId) throws ExecutionException, InterruptedException {
+        return getConnectedSystemsApiClientExtras().getObservation(observationId, datastreamResource).get();
     }
 
     /**
@@ -175,23 +188,14 @@ public class OSHDatastream {
      * Push an observation to this datastream.
      *
      * @param observation The observation to add.
-     * @return true if the observation was added successfully, false otherwise.
+     * @return The ID of the observation if the operation was successful, otherwise null.
      */
-    public boolean pushObservation(Observation observation) {
-        APIRequest request = new APIRequest();
-        request.setUrl(Utilities.joinPath(parentSystem.getParentNode().getHTTPPrefix(), getObservationsEndpoint()));
-        request.setAuthorizationToken(parentSystem.getParentNode().getAuthorizationToken());
-        request.setBody(observation.toJson());
-        APIResponse response = request.post();
-        return response.isSuccessful();
+    public String pushObservation(ObservationData observation) throws ExecutionException, InterruptedException {
+        return getConnectedSystemsApiClientExtras().pushObservation(id, datastreamResource, observation).get();
     }
 
     public boolean updateDatastream(IDataStreamInfo dataStreamInfo) throws ExecutionException, InterruptedException {
-        var conSys = ConSysApiClientExtras
-                .newBuilder(Utilities.joinPath(parentSystem.getParentNode().getHTTPPrefix(), parentSystem.getParentNode().getApiEndpoint()))
-                .build()
-                .updateDataStream(id, dataStreamInfo);
-        Integer response = conSys.get();
+        Integer response = getConnectedSystemsApiClientExtras().updateDataStream(id, dataStreamInfo).get();
         boolean success = response != null && response >= 200 && response < 300;
 
         if (success) {
@@ -201,16 +205,20 @@ public class OSHDatastream {
     }
 
     public boolean refreshDatastream() throws ExecutionException, InterruptedException {
-        var conSys = ConSysApiClient
-                .newBuilder(Utilities.joinPath(parentSystem.getParentNode().getHTTPPrefix(), parentSystem.getParentNode().getApiEndpoint()))
-                .build()
-                .getDatastreamById(id, ResourceFormat.JSON, true);
-        IDataStreamInfo response = conSys.get();
+        IDataStreamInfo response = getConnectedSystemsApiClient().getDatastreamById(id, ResourceFormat.JSON, true).get();
         boolean success = response != null;
 
         if (success) {
             datastreamResource = response;
         }
         return success;
+    }
+
+    public ConSysApiClient getConnectedSystemsApiClient() {
+        return parentSystem.getConnectedSystemsApiClient();
+    }
+
+    public ConSysApiClientExtras getConnectedSystemsApiClientExtras() {
+        return parentSystem.getConnectedSystemsApiClientExtras();
     }
 }

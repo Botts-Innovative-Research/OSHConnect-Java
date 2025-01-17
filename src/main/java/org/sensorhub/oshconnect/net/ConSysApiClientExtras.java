@@ -8,9 +8,12 @@ import com.google.gson.JsonParser;
 import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.system.ISystemWithDesc;
 import org.sensorhub.impl.service.consys.obs.DataStreamBindingJson;
+import org.sensorhub.impl.service.consys.obs.ObsHandler;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
 import org.sensorhub.impl.service.consys.resource.ResourceFormat;
 import org.sensorhub.impl.service.consys.system.SystemBindingGeoJson;
+import org.sensorhub.oshconnect.datamodels.ObservationBindingOmJson;
+import org.sensorhub.oshconnect.datamodels.ObservationData;
 import org.vast.util.Asserts;
 import org.vast.util.BaseBuilder;
 
@@ -22,7 +25,9 @@ import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.function.Function;
@@ -65,25 +70,22 @@ public class ConSysApiClientExtras {
         });
     }
 
-    public CompletableFuture<Map<String, IDataStreamInfo>> getDatastreams(ResourceFormat format) {
-        return sendGetRequest(endpoint.resolve(DATASTREAMS_COLLECTION), format, body -> {
+    public CompletableFuture<List<String>> getDatastreamIds(String systemID, ResourceFormat format) {
+        return sendGetRequest(endpoint.resolve(SYSTEMS_COLLECTION + "/" + systemID + "/" + DATASTREAMS_COLLECTION), format, body -> {
             try {
                 var ctx = new RequestContext(body);
 
                 JsonObject bodyJson = JsonParser.parseReader(new InputStreamReader(ctx.getInputStream())).getAsJsonObject();
                 JsonArray features = bodyJson.getAsJsonArray("items");
 
-                Map<String, IDataStreamInfo> datastreams = new HashMap<>();
+                List<String> datastreams = new ArrayList<>();
                 for (var feature : features) {
                     // Get the ID
                     var id = feature.getAsJsonObject().entrySet().stream()
                             .filter(e -> e.getKey().equals("id"))
                             .findFirst()
                             .orElseThrow(() -> new IOException("No id found in feature"));
-
-                    var ctx2 = new RequestContext(new ByteArrayInputStream(feature.toString().getBytes()));
-                    var binding = new DataStreamBindingJson(ctx2, null, null, true, Collections.emptyMap());
-                    datastreams.put(id.getValue().getAsString(), binding.deserialize());
+                    datastreams.add(id.getValue().getAsString());
                 }
 
                 return datastreams;
@@ -95,6 +97,47 @@ public class ConSysApiClientExtras {
 
     public CompletableFuture<Integer> deleteDatastream(String dataStreamId) {
         return sendDeleteRequest(endpoint.resolve(DATASTREAMS_COLLECTION + "/" + dataStreamId));
+    }
+
+    public CompletableFuture<String> pushObservation(String dataStreamId, IDataStreamInfo dataStream, ObservationData obs) {
+        try {
+            ObsHandler.ObsHandlerContextData contextData = new ObsHandler.ObsHandlerContextData();
+            contextData.dsInfo = dataStream;
+
+            var buffer = new ByteArrayOutputStream();
+            var ctx = new RequestContext(buffer);
+            ctx.setData(contextData);
+
+            ctx.setFormat(ResourceFormat.OM_JSON);
+            var binding = new ObservationBindingOmJson(ctx, null, false);
+            binding.serialize(null, obs, false);
+
+            return sendPostRequest(
+                    endpoint.resolve(DATASTREAMS_COLLECTION + "/" + dataStreamId + "/" + OBSERVATIONS_COLLECTION),
+                    ctx.getFormat(),
+                    buffer.toByteArray());
+        } catch (IOException e) {
+            throw new IllegalStateException("Error initializing binding", e);
+        }
+    }
+
+    public CompletableFuture<ObservationData> getObservation(String observationId, IDataStreamInfo dataStream) {
+        return sendGetRequest(endpoint.resolve(OBSERVATIONS_COLLECTION + "/" + observationId), ResourceFormat.OM_JSON, body -> {
+            try {
+                var ctx = new RequestContext(body);
+
+                ObsHandler.ObsHandlerContextData contextData = new ObsHandler.ObsHandlerContextData();
+                contextData.dsInfo = dataStream;
+                ctx.setData(contextData);
+
+                ctx.setFormat(ResourceFormat.OM_JSON);
+                var binding = new ObservationBindingOmJson(ctx, null, true);
+                return binding.deserialize();
+
+            } catch (IOException e) {
+                throw new CompletionException(e);
+            }
+        });
     }
 
     protected <T> CompletableFuture<T> sendGetRequest(URI collectionUri, ResourceFormat format, Function<InputStream, T> bodyMapper) {
@@ -198,12 +241,10 @@ public class ConSysApiClientExtras {
             }
         }
 
-
         public ConSysApiClientExtras.ConSysApiClientExtrasBuilder useHttpClient(HttpClient http) {
             instance.http = http;
             return this;
         }
-
 
         public ConSysApiClientExtras.ConSysApiClientExtrasBuilder simpleAuth(String user, char[] password) {
             if (!Strings.isNullOrEmpty(user)) {

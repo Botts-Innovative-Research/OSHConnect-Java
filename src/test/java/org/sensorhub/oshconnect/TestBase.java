@@ -2,6 +2,7 @@ package org.sensorhub.oshconnect;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import net.opengis.swe.v20.DataRecord;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.sensorhub.api.common.SensorHubException;
@@ -38,7 +39,7 @@ public class TestBase {
     protected Gson gson = new GsonBuilder().setPrettyPrinting().create();
     protected OSHConnect oshConnect;
     protected OSHNode node;
-    long previousTimestamp;
+    protected DataRecord dataRecord;
 
     @BeforeEach
     void setUp() throws IOException, SensorHubException {
@@ -78,6 +79,19 @@ public class TestBase {
         // Create the OSHConnect instance
         oshConnect = new OSHConnect();
         node = oshConnect.createNode(httpServer.getServletsBaseUrl(), IS_SECURE, USERNAME, PASSWORD);
+
+        var swe = new GeoPosHelper();
+        dataRecord = swe.createRecord()
+                .name("cat_sensor_data")
+                .label("Cat Sensor Data")
+                .description("Position data from the cat sensor.")
+                .addField("time", swe.createTime()
+                        .asSamplingTimeIsoUTC()
+                        .label("Time")
+                        .description("Time of data collection"))
+                .addField("pos", swe.createLocationVectorLLA()
+                        .label("Position"))
+                .build();
     }
 
     @AfterEach
@@ -113,16 +127,11 @@ public class TestBase {
     }
 
     protected DataStreamInfo newDataStreamInfo(String name, String description) {
-        var swe = new GeoPosHelper();
-        var recordStruct = swe.createLocationVectorLLA()
-                .name("pos")
-                .build();
-
         return new DataStreamInfo.Builder()
                 .withSystem(FeatureId.NULL_FEATURE)
                 .withName(name)
                 .withDescription(description)
-                .withRecordDescription(recordStruct)
+                .withRecordDescription(dataRecord)
                 .withRecordEncoding(new TextEncodingImpl())
                 .build();
     }

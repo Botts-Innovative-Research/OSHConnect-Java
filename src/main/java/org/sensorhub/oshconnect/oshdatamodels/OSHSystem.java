@@ -28,7 +28,7 @@ public class OSHSystem {
     private final Set<OSHDatastream> datastreams = new HashSet<>();
     private final Set<OSHControlStream> controlStreams = new HashSet<>();
     private final Set<INotificationDatastream> datastreamNotificationListeners = new HashSet<>();
-    private final Set<INotificationControlStream> controlStreamNotificationListeners = new HashSet();
+    private final Set<INotificationControlStream> controlStreamNotificationListeners = new HashSet<>();
     @Getter
     private ISystemWithDesc systemResource;
 
@@ -43,17 +43,15 @@ public class OSHSystem {
      * @return The list of datastreams.
      */
     public List<OSHDatastream> discoverDataStreams() throws ExecutionException, InterruptedException {
-        var conSys = ConSysApiClientExtras
-                .newBuilder(Utilities.joinPath(parentNode.getHTTPPrefix(), parentNode.getApiEndpoint()))
-                .build()
-                .getDatastreams(ResourceFormat.JSON);
-
-        var streams = conSys.get();
-        for (var entry : streams.entrySet()) {
-            if (this.datastreams.stream().noneMatch(ds -> ds.getId().equals(entry.getKey()))) {
-                OSHDatastream datastream = new OSHDatastream(this, entry.getKey(), entry.getValue());
-                this.datastreams.add(datastream);
-                notifyDatastreamAdded(datastream);
+        var dataStreamIds = getConnectedSystemsApiClientExtras().getDatastreamIds(getId(), ResourceFormat.JSON).get();
+        for (var id : dataStreamIds) {
+            if (datastreams.stream().noneMatch(ds -> ds.getId().equals(id))) {
+                var datastreamResource = getConnectedSystemsApiClient().getDatastreamById(id, ResourceFormat.JSON, true).get();
+                if (datastreamResource != null) {
+                    OSHDatastream datastream = new OSHDatastream(this, id, datastreamResource);
+                    datastreams.add(datastream);
+                    notifyDatastreamAdded(datastream);
+                }
             }
         }
         return getDatastreams();
@@ -72,30 +70,20 @@ public class OSHSystem {
         APIResponse response = request.get();
         List<ControlStreamResource> controlStreamResources = response.getItems(ControlStreamResource.class);
 
-        // TODO: fix this
-//        for (ControlStreamResource controlStreamResource : controlStreamResources) {
-//            if (datastreams.stream().noneMatch(ds -> ds.getDatastreamResource().getId().equals(controlStreamResource.getId()))) {
-//                OSHControlStream controlStream = new OSHControlStream(controlStreamResource, this);
-//                controlStreams.add(controlStream);
-//                notifyControlStreamAdded(controlStream);
-//            }
-//        }
+        for (ControlStreamResource controlStreamResource : controlStreamResources) {
+            if (controlStreams.stream().noneMatch(cs -> cs.getId().equals(controlStreamResource.getId()))) {
+                OSHControlStream controlStream = new OSHControlStream(this, controlStreamResource);
+                controlStreams.add(controlStream);
+                notifyControlStreamAdded(controlStream);
+            }
+        }
 
         return getControlStreams();
     }
 
     public boolean updateSystem(ISystemWithDesc systemResource) throws ExecutionException, InterruptedException {
-        var conSys = ConSysApiClient
-                .newBuilder(Utilities.joinPath(parentNode.getHTTPPrefix(), parentNode.getApiEndpoint()))
-                .build()
-                .updateSystem(getId(), systemResource);
-
-        boolean success = false;
-
-        Integer result = conSys.get();
-        if (result != null && result >= 200 && result < 300) {
-            success = true;
-        }
+        Integer response = getConnectedSystemsApiClient().updateSystem(getId(), systemResource).get();
+        boolean success = response != null && response >= 200 && response < 300;
 
         if (success) {
             return refreshSystem();
@@ -110,11 +98,7 @@ public class OSHSystem {
      * @return True if the refresh was successful, false otherwise.
      */
     public boolean refreshSystem() throws ExecutionException, InterruptedException {
-        var conSys = ConSysApiClient
-                .newBuilder(Utilities.joinPath(parentNode.getHTTPPrefix(), parentNode.getApiEndpoint()))
-                .build()
-                .getSystemById(getId(), ResourceFormat.JSON);
-        var newSystemResource = conSys.get();
+        var newSystemResource = getConnectedSystemsApiClient().getSystemById(getId(), ResourceFormat.JSON).get();
 
         if (newSystemResource != null) {
             systemResource = newSystemResource;
@@ -130,20 +114,16 @@ public class OSHSystem {
      * @return The new datastream or null if the creation failed.
      */
     public OSHDatastream createDatastream(DataStreamInfo datastreamResource) throws ExecutionException, InterruptedException {
-        var conSys = ConSysApiClient
-                .newBuilder(Utilities.joinPath(parentNode.getHTTPPrefix(), parentNode.getApiEndpoint()))
-                .build()
-                .addDataStream(getId(), datastreamResource);
+        String id = getConnectedSystemsApiClient().addDataStream(getId(), datastreamResource).get();
+        if (id == null) return null;
 
-        String id = conSys.get();
-        if (id != null) {
-            OSHDatastream datastream = new OSHDatastream(this, id, datastreamResource);
-            datastreams.add(datastream);
-            notifyDatastreamAdded(datastream);
-            return datastream;
-        }
+        var newDatastreamResource = getConnectedSystemsApiClient().getDatastreamById(id, ResourceFormat.JSON, true).get();
+        if (newDatastreamResource == null) return null;
 
-        return null;
+        OSHDatastream datastream = new OSHDatastream(this, id, newDatastreamResource);
+        datastreams.add(datastream);
+        notifyDatastreamAdded(datastream);
+        return datastream;
     }
 
     /**
@@ -153,13 +133,8 @@ public class OSHSystem {
      * @return True if the deletion was successful, false otherwise.
      */
     public boolean deleteDatastream(OSHDatastream datastream) throws ExecutionException, InterruptedException {
-        var conSys = ConSysApiClientExtras
-                .newBuilder(Utilities.joinPath(parentNode.getHTTPPrefix(), parentNode.getApiEndpoint()))
-                .build()
-                .deleteDatastream(datastream.getId());
-        Integer result = conSys.get();
-
-        boolean success = result != null && result >= 200 && result < 300;
+        Integer response = getConnectedSystemsApiClientExtras().deleteDatastream(datastream.getId()).get();
+        boolean success = response != null && response >= 200 && response < 300;
 
         if (success) {
             datastreams.remove(datastream);
@@ -214,6 +189,14 @@ public class OSHSystem {
         return List.copyOf(controlStreams);
     }
 
+    public ConSysApiClient getConnectedSystemsApiClient() {
+        return parentNode.getConnectedSystemsApiClient();
+    }
+
+    public ConSysApiClientExtras getConnectedSystemsApiClientExtras() {
+        return parentNode.getConnectedSystemsApiClientExtras();
+    }
+
     /**
      * Add a listener for datastream notifications.
      *
@@ -252,6 +235,24 @@ public class OSHSystem {
         for (INotificationDatastream listener : datastreamNotificationListeners) {
             listener.onItemRemoved(datastream);
         }
+    }
+
+    /**
+     * Add a listener for control stream notifications.
+     *
+     * @param listener The listener.
+     */
+    public void addControlStreamNotificationListener(INotificationControlStream listener) {
+        controlStreamNotificationListeners.add(listener);
+    }
+
+    /**
+     * Remove a listener for control stream notifications.
+     *
+     * @param listener The listener.
+     */
+    public void removeControlStreamNotificationListener(INotificationControlStream listener) {
+        controlStreamNotificationListeners.remove(listener);
     }
 
     /**

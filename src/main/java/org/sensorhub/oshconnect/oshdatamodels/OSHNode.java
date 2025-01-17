@@ -51,8 +51,11 @@ public class OSHNode {
      * May be null if the username or password were not provided.
      */
     @Getter
-    @Setter
     private String authorizationToken;
+    @Getter
+    private String username;
+    @Getter
+    private String password;
 
     public OSHNode(String sensorHubRoot, boolean isSecure, String username, String password) {
         this(sensorHubRoot, isSecure, username, password, UUID.randomUUID());
@@ -113,12 +116,7 @@ public class OSHNode {
             return system;
         }
 
-        var conSys = ConSysApiClient
-                .newBuilder(Utilities.joinPath(getHTTPPrefix(), getApiEndpoint()))
-                .build()
-                .addSystem(physicalSystem);
-
-        String id = conSys.get();
+        String id = getConnectedSystemsApiClient().addSystem(physicalSystem).get();
         return getSystemById(id);
     }
 
@@ -129,6 +127,8 @@ public class OSHNode {
      * @return The OSHSystem object for the added system.
      */
     private OSHSystem addSystem(ISystemWithDesc systemResource) {
+        if (systemResource == null) return null;
+
         OSHSystem system = new OSHSystem(this, systemResource);
         systems.add(system);
         notifySystemAdded(system);
@@ -163,13 +163,9 @@ public class OSHNode {
      * @return The list of systems.
      */
     private List<ISystemWithDesc> getSystemResourcesFromServer() throws ExecutionException, InterruptedException {
-        var conSys = ConSysApiClientExtras
-                .newBuilder(Utilities.joinPath(getHTTPPrefix(), getApiEndpoint()))
-                .build()
-                .getSystems(ResourceFormat.JSON);
+        var result = getConnectedSystemsApiClientExtras().getSystems(ResourceFormat.JSON);
 
-        System.out.println("asd");
-        return conSys.get();
+        return result.get();
     }
 
     /**
@@ -266,8 +262,12 @@ public class OSHNode {
     public void setAuthorization(String username, String password) {
         if (username != null && password != null && !username.isEmpty() && !password.isEmpty()) {
             authorizationToken = Base64.getEncoder().encodeToString((username + ":" + password).getBytes());
+            this.username = username;
+            this.password = password;
         } else {
             authorizationToken = null;
+            this.username = null;
+            this.password = null;
         }
     }
 
@@ -390,12 +390,9 @@ public class OSHNode {
         }
 
         // Check if this UID already exists on the server and return it
-        var conSys = ConSysApiClient
-                .newBuilder(Utilities.joinPath(getHTTPPrefix(), getApiEndpoint()))
-                .build()
-                .getSystemByUid(uid, ResourceFormat.JSON);
-        if (conSys != null) {
-            var systemResource = conSys.get();
+        var result = getConnectedSystemsApiClient().getSystemByUid(uid, ResourceFormat.JSON);
+        if (result != null) {
+            var systemResource = result.get();
             if (systemResource != null) {
                 return addSystem(systemResource);
             }
@@ -405,6 +402,8 @@ public class OSHNode {
     }
 
     private OSHSystem getSystemById(String id) throws ExecutionException, InterruptedException {
+        if (id == null || id.isEmpty()) return null;
+
         // Check if this ID already exists and return it
         for (OSHSystem system : systems) {
             if (system.getId().equals(id)) {
@@ -412,15 +411,26 @@ public class OSHNode {
             }
         }
 
-        var conSys = ConSysApiClient
-                .newBuilder(Utilities.joinPath(getHTTPPrefix(), getApiEndpoint()))
-                .build()
-                .getSystemById(id, ResourceFormat.JSON);
+        var result = getConnectedSystemsApiClient().getSystemById(id, ResourceFormat.JSON);
 
-        if (conSys != null) {
-            return addSystem(conSys.get());
+        return addSystem(result.get());
+    }
+
+    public ConSysApiClient getConnectedSystemsApiClient() {
+        var conSysBuilder = ConSysApiClient
+                .newBuilder(Utilities.joinPath(getHTTPPrefix(), getApiEndpoint()));
+        if (authorizationToken != null) {
+            conSysBuilder.simpleAuth(username, password.toCharArray());
         }
+        return conSysBuilder.build();
+    }
 
-        return null;
+    public ConSysApiClientExtras getConnectedSystemsApiClientExtras() {
+        var conSysBuilder = ConSysApiClientExtras
+                .newBuilder(Utilities.joinPath(getHTTPPrefix(), getApiEndpoint()));
+        if (authorizationToken != null) {
+            conSysBuilder.simpleAuth(username, password.toCharArray());
+        }
+        return conSysBuilder.build();
     }
 }

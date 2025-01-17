@@ -20,6 +20,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 // and uncomment the @Disabled annotation to run the test.
 @Disabled
 class WebSocketTest extends TestBase {
+    long previousTimestamp = 0;
+    
     @Test
     void testControlStreams() throws ExecutionException, InterruptedException {
         System.out.println();
