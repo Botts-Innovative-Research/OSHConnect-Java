@@ -81,6 +81,14 @@ public class OSHSystem {
         return getControlStreams();
     }
 
+    /**
+     * Update the system properties on the server.
+     * Note: After updating the system, the system properties are refreshed from the server,
+     * not set to the provided system properties.
+     *
+     * @param systemResource The new system properties.
+     * @return True if the update was successful, false otherwise.
+     */
     public boolean updateSystem(ISystemWithDesc systemResource) throws ExecutionException, InterruptedException {
         Integer response = getConnectedSystemsApiClient().updateSystem(getId(), systemResource).get();
         boolean success = response != null && response >= 200 && response < 300;

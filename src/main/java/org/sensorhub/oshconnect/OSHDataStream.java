@@ -72,7 +72,7 @@ public class OSHDataStream {
      * @param limit            This parameter limits the number of items that are presented in the response document.
      * @return A list of ObservationData objects.
      */
-    public List<ObservationData> getObservations(List<String> id, TimeExtent phenomenonTime, TimeExtent resultTime, List<String> foi, List<String> observedProperty, int limit) throws ExecutionException, InterruptedException {
+    public List<ObservationData> getObservations(List<String> id, TimeExtent phenomenonTime, TimeExtent resultTime, List<String> foi, List<String> observedProperty, Integer limit) throws ExecutionException, InterruptedException {
         QueryStringBuilder queryString = QueryStringBuilder.fromMap(new HashMap<>())
                 .addParameter("id", id)
                 .addParameter("phenomenonTime", phenomenonTime)
@@ -94,6 +94,14 @@ public class OSHDataStream {
         return getConnectedSystemsApiClientExtras().pushObservation(id, dataStreamResource, observation).get();
     }
 
+    /**
+     * Updates the data stream properties on the server
+     * Note: After updating the data stream, the properties are refreshed from the server,
+     * not set to the provided properties.
+     *
+     * @param dataStreamInfo The data stream info to update the data stream with.
+     * @return true if the operation was successful, otherwise false.
+     */
     public boolean updateDataStream(IDataStreamInfo dataStreamInfo) throws ExecutionException, InterruptedException {
         Integer response = getConnectedSystemsApiClientExtras().updateDataStream(id, dataStreamInfo).get();
         boolean success = response != null && response >= 200 && response < 300;
@@ -104,6 +112,11 @@ public class OSHDataStream {
         return false;
     }
 
+    /**
+     * Refreshes the data stream properties from the server.
+     *
+     * @return true if the operation was successful, otherwise false.
+     */
     public boolean refreshDataStream() throws ExecutionException, InterruptedException {
         IDataStreamInfo response = getConnectedSystemsApiClient().getDatastreamById(id, ResourceFormat.JSON, true).get();
         boolean success = response != null;
