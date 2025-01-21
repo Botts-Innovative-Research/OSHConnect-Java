@@ -72,17 +72,21 @@ class DatastreamsTest extends TestBase {
         assertEquals(OBS_LON, dataBlock.getDoubleValue(OBS_LON_INDEX));
         assertEquals(OBS_ALT, dataBlock.getDoubleValue(OBS_ALT_INDEX));
 
-        var observations = datastream.getObservationsList();
+        var observations = datastream.getObservations();
         assertFalse(observations.isEmpty());
         assertTrue(observations.stream().anyMatch(obs -> obs.getId().equals(observationID)));
     }
 
     protected DataBlock newDataBlockWithData() {
+        return newDataBlockWithData(OBS_LAT, OBS_LON, OBS_ALT);
+    }
+
+    protected DataBlock newDataBlockWithData(double lat, double lon, double alt) {
         DataBlock dataBlock = dataRecord.createDataBlock();
         dataBlock.setDoubleValue(OBS_TIME_INDEX, System.currentTimeMillis() / 1000d);
-        dataBlock.setDoubleValue(OBS_LAT_INDEX, OBS_LAT);
-        dataBlock.setDoubleValue(OBS_LON_INDEX, OBS_LON);
-        dataBlock.setDoubleValue(OBS_ALT_INDEX, OBS_ALT);
+        dataBlock.setDoubleValue(OBS_LAT_INDEX, lat);
+        dataBlock.setDoubleValue(OBS_LON_INDEX, lon);
+        dataBlock.setDoubleValue(OBS_ALT_INDEX, alt);
         return dataBlock;
     }
 }

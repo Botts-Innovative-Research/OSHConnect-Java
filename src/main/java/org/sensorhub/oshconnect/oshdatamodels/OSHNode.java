@@ -163,7 +163,7 @@ public class OSHNode {
      * @return The list of systems.
      */
     private List<ISystemWithDesc> getSystemResourcesFromServer() throws ExecutionException, InterruptedException {
-        var result = getConnectedSystemsApiClientExtras().getSystems(ResourceFormat.JSON);
+        var result = getConnectedSystemsApiClientExtras().getSystems();
 
         return result.get();
     }

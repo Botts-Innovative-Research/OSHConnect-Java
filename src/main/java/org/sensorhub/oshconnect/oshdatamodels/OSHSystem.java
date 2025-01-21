@@ -43,7 +43,7 @@ public class OSHSystem {
      * @return The list of datastreams.
      */
     public List<OSHDatastream> discoverDataStreams() throws ExecutionException, InterruptedException {
-        var dataStreamIds = getConnectedSystemsApiClientExtras().getDatastreamIds(getId(), ResourceFormat.JSON).get();
+        var dataStreamIds = getConnectedSystemsApiClientExtras().getDatastreamIds(getId()).get();
         for (var id : dataStreamIds) {
             if (datastreams.stream().noneMatch(ds -> ds.getId().equals(id))) {
                 var datastreamResource = getConnectedSystemsApiClient().getDatastreamById(id, ResourceFormat.JSON, true).get();

@@ -5,17 +5,14 @@ import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.impl.service.consys.client.ConSysApiClient;
 import org.sensorhub.impl.service.consys.resource.ResourceFormat;
 import org.sensorhub.oshconnect.constants.Service;
-import org.sensorhub.oshconnect.datamodels.Observation;
 import org.sensorhub.oshconnect.datamodels.ObservationData;
-import org.sensorhub.oshconnect.net.APIRequest;
-import org.sensorhub.oshconnect.net.APIResponse;
 import org.sensorhub.oshconnect.net.ConSysApiClientExtras;
+import org.sensorhub.oshconnect.util.QueryStringBuilder;
 import org.sensorhub.oshconnect.util.Utilities;
 import org.vast.util.TimeExtent;
 
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 @Getter
@@ -54,14 +51,10 @@ public class OSHDatastream {
     /**
      * Returns the latest observations of this datastream.
      *
-     * @return A string containing the observations.
+     * @return A list of ObservationData objects.
      */
-    public String getObservations() {
-        APIRequest request = new APIRequest();
-        request.setUrl(Utilities.joinPath(parentSystem.getParentNode().getHTTPPrefix(), getObservationsEndpoint()));
-        request.setAuthorizationToken(parentSystem.getParentNode().getAuthorizationToken());
-        APIResponse response = request.get();
-        return response.getResponseBody();
+    public List<ObservationData> getObservations() throws ExecutionException, InterruptedException {
+        return getConnectedSystemsApiClientExtras().getObservations(id, datastreamResource).get();
     }
 
     /**
@@ -77,111 +70,18 @@ public class OSHDatastream {
      * @param observedProperty List of property local IDs or unique IDs (URI).
      *                         Only resources that are associated with an observable property that has one of the provided identifiers are selected.
      * @param limit            This parameter limits the number of items that are presented in the response document.
-     * @return A string containing the observations.
+     * @return A list of ObservationData objects.
      */
-    public String getObservations(List<String> id, TimeExtent phenomenonTime, TimeExtent resultTime, List<String> foi, List<String> observedProperty, int limit) {
-        APIRequest request = new APIRequest();
-        request.setUrl(Utilities.joinPath(parentSystem.getParentNode().getHTTPPrefix(), getObservationsEndpoint()));
-        request.setAuthorizationToken(parentSystem.getParentNode().getAuthorizationToken());
+    public List<ObservationData> getObservations(List<String> id, TimeExtent phenomenonTime, TimeExtent resultTime, List<String> foi, List<String> observedProperty, int limit) throws ExecutionException, InterruptedException {
+        QueryStringBuilder queryString = QueryStringBuilder.fromMap(new HashMap<>())
+                .addParameter("id", id)
+                .addParameter("phenomenonTime", phenomenonTime)
+                .addParameter("resultTime", resultTime)
+                .addParameter("foi", foi)
+                .addParameter("observedProperty", observedProperty)
+                .addParameter("limit", limit);
 
-        Map<String, String> params = new HashMap<>();
-        if (id != null && !id.isEmpty()) {
-            params.put("id", String.join(",", id));
-        }
-        if (phenomenonTime != null) {
-            if (phenomenonTime.isNow()) {
-                params.put("phenomenonTime", "now");
-            } else {
-                params.put("phenomenonTime", phenomenonTime.isoStringUTC(true));
-            }
-        }
-        if (resultTime != null) {
-            if (resultTime.isNow()) {
-                params.put("resultTime", "now");
-            } else {
-                params.put("resultTime", resultTime.isoStringUTC(true));
-            }
-        }
-        if (foi != null && !foi.isEmpty()) {
-            params.put("foi", String.join(",", foi));
-        }
-        if (observedProperty != null && !observedProperty.isEmpty()) {
-            params.put("observedProperty", String.join(",", observedProperty));
-        }
-        if (limit > 0) {
-            params.put("limit", Integer.toString(limit));
-        }
-
-        request.setParams(params);
-        APIResponse response = request.get();
-        return response.getResponseBody();
-    }
-
-    /**
-     * Returns the latest observations of this datastream as a list of Observation objects.
-     * Note: This method will return an empty list if the response body is not a JSON object.
-     *
-     * @return A list of Observation objects.
-     */
-    public List<Observation> getObservationsList() {
-        APIRequest request = new APIRequest();
-        request.setUrl(Utilities.joinPath(parentSystem.getParentNode().getHTTPPrefix(), getObservationsEndpoint()));
-        request.setAuthorizationToken(parentSystem.getParentNode().getAuthorizationToken());
-        APIResponse response = request.get();
-        return response.getItems(Observation.class);
-    }
-
-    /**
-     * Returns the latest observations of this datastream as a list of Observation objects with the specified parameters.
-     * Note: This method will return an empty list if the response body is not a JSON object.
-     *
-     * @param id               List of resource local IDs or unique IDs (URI).
-     *                         Only resources that have one of the provided identifiers are selected.
-     * @param phenomenonTime   Only resources with a phenomenonTime property that intersects the value of the phenomenonTime parameter are selected.
-     * @param resultTime       Only resources with a phenomenonTime property that intersects the value of the phenomenonTime parameter are selected.
-     * @param foi              List of feature local IDs or unique IDs (URI).
-     *                         Only resources that are associated with a feature of interest that has one of the provided identifiers are selected.
-     * @param observedProperty List of property local IDs or unique IDs (URI).
-     *                         Only resources that are associated with an observable property that has one of the provided identifiers are selected.
-     * @param limit            This parameter limits the number of items that are presented in the response document.
-     * @return A list of Observation objects.
-     */
-    public List<Observation> getObservationsList(List<String> id, TimeExtent phenomenonTime, TimeExtent resultTime, List<String> foi, List<String> observedProperty, int limit) {
-        APIRequest request = new APIRequest();
-        request.setUrl(Utilities.joinPath(parentSystem.getParentNode().getHTTPPrefix(), getObservationsEndpoint()));
-        request.setAuthorizationToken(parentSystem.getParentNode().getAuthorizationToken());
-
-        Map<String, String> params = new HashMap<>();
-        if (id != null && !id.isEmpty()) {
-            params.put("id", String.join(",", id));
-        }
-        if (phenomenonTime != null) {
-            if (phenomenonTime.isNow()) {
-                params.put("phenomenonTime", "now");
-            } else {
-                params.put("phenomenonTime", phenomenonTime.isoStringUTC(true));
-            }
-        }
-        if (resultTime != null) {
-            if (resultTime.isNow()) {
-                params.put("resultTime", "now");
-            } else {
-                params.put("resultTime", resultTime.isoStringUTC(true));
-            }
-        }
-        if (foi != null && !foi.isEmpty()) {
-            params.put("foi", String.join(",", foi));
-        }
-        if (observedProperty != null && !observedProperty.isEmpty()) {
-            params.put("observedProperty", String.join(",", observedProperty));
-        }
-        if (limit > 0) {
-            params.put("limit", Integer.toString(limit));
-        }
-
-        request.setParams(params);
-        APIResponse response = request.get();
-        return response.getItems(Observation.class);
+        return getConnectedSystemsApiClientExtras().getObservations(this.id, datastreamResource, queryString.toString()).get();
     }
 
     /**
