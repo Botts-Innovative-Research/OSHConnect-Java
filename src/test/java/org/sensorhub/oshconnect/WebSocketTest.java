@@ -2,9 +2,8 @@ package org.sensorhub.oshconnect;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.sensorhub.oshconnect.net.websocket.DatastreamEventArgs;
-import org.sensorhub.oshconnect.net.websocket.DatastreamHandler;
-import org.sensorhub.oshconnect.oshdatamodels.OSHDatastream;
+import org.sensorhub.oshconnect.net.websocket.DataStreamEventArgs;
+import org.sensorhub.oshconnect.net.websocket.DataStreamHandler;
 import org.vast.util.TimeExtent;
 
 import java.time.Instant;
@@ -21,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 @Disabled
 class WebSocketTest extends TestBase {
     long previousTimestamp = 0;
-    
+
     @Test
     void testControlStreams() throws ExecutionException, InterruptedException {
         System.out.println();
@@ -44,13 +43,13 @@ class WebSocketTest extends TestBase {
         System.out.println("Datastream listener test");
 
         oshConnect.discoverSystems();
-        List<OSHDatastream> datastreams = oshConnect.discoverDatastreams();
+        List<OSHDataStream> datastreams = oshConnect.discoverDataStreams();
         assertFalse(datastreams.isEmpty(), "No datastreams found.");
 
-        DatastreamHandler handler = oshConnect.getDatastreamManager().createDatastreamHandler(this::onStreamUpdate);
+        DataStreamHandler handler = oshConnect.getDataStreamManager().createDataStreamHandler(this::onStreamUpdate);
 
         // Add all the discovered datastreams to the handler.
-        for (OSHDatastream datastream : datastreams) {
+        for (OSHDataStream datastream : datastreams) {
             handler.addDatastream(datastream);
         }
 
@@ -72,8 +71,8 @@ class WebSocketTest extends TestBase {
         latch.await(1, TimeUnit.SECONDS);
     }
 
-    private void onStreamUpdate(DatastreamEventArgs args) {
-        var datastreamId = args.getDatastream().getId();
+    private void onStreamUpdate(DataStreamEventArgs args) {
+        var datastreamId = args.getDataStream().getId();
         var timestamp = args.getTimestamp();
 
         String message = String.format("onStreamUpdate: timestamp=%s datastreamId=%s", timestamp, datastreamId);

@@ -1,22 +1,21 @@
 package org.sensorhub.oshconnect.net.websocket;
 
-import org.sensorhub.oshconnect.datamodels.Observation;
-import org.sensorhub.oshconnect.net.RequestFormat;
-import org.sensorhub.oshconnect.oshdatamodels.OSHDatastream;
-
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import org.sensorhub.oshconnect.OSHDataStream;
+import org.sensorhub.oshconnect.datamodels.Observation;
+import org.sensorhub.oshconnect.net.RequestFormat;
 
 /**
- * Event arguments for datastream events.
+ * Event arguments for data stream events.
  */
 @Getter
 @RequiredArgsConstructor
-public class DatastreamEventArgs {
+public class DataStreamEventArgs {
     private final long timestamp;
     private final byte[] data;
     private final RequestFormat format;
-    private final OSHDatastream datastream;
+    private final OSHDataStream dataStream;
 
     /**
      * Returns the data as an Observation object or null if the data is not in JSON format.

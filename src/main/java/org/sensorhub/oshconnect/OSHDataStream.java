@@ -1,4 +1,4 @@
-package org.sensorhub.oshconnect.oshdatamodels;
+package org.sensorhub.oshconnect;
 
 import lombok.Getter;
 import org.sensorhub.api.data.IDataStreamInfo;
@@ -16,21 +16,21 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 @Getter
-public class OSHDatastream {
+public class OSHDataStream {
     private final OSHSystem parentSystem;
     private final String id;
-    private IDataStreamInfo datastreamResource;
+    private IDataStreamInfo dataStreamResource;
 
-    public OSHDatastream(OSHSystem parentSystem, String id, IDataStreamInfo datastreamResource) {
+    public OSHDataStream(OSHSystem parentSystem, String id, IDataStreamInfo dataStreamResource) {
         this.parentSystem = parentSystem;
         this.id = id;
-        this.datastreamResource = datastreamResource;
+        this.dataStreamResource = dataStreamResource;
     }
 
     /**
-     * Returns the endpoint for the observations of this datastream.
+     * Returns the endpoint for the observations of this data stream.
      *
-     * @return the endpoint for the observations of this datastream.
+     * @return the endpoint for the observations of this data stream.
      */
     public String getObservationsEndpoint() {
         return Utilities.joinPath(parentSystem.getParentNode().getApiEndpoint(), Service.DATASTREAMS.getEndpoint(), getId(), Service.OBSERVATIONS.getEndpoint());
@@ -45,20 +45,20 @@ public class OSHDatastream {
      * @throws InterruptedException If the execution of the request is interrupted.
      */
     public ObservationData getObservation(String observationId) throws ExecutionException, InterruptedException {
-        return getConnectedSystemsApiClientExtras().getObservation(observationId, datastreamResource).get();
+        return getConnectedSystemsApiClientExtras().getObservation(observationId, dataStreamResource).get();
     }
 
     /**
-     * Returns the latest observations of this datastream.
+     * Returns the latest observations of this data stream.
      *
      * @return A list of ObservationData objects.
      */
     public List<ObservationData> getObservations() throws ExecutionException, InterruptedException {
-        return getConnectedSystemsApiClientExtras().getObservations(id, datastreamResource).get();
+        return getConnectedSystemsApiClientExtras().getObservations(id, dataStreamResource).get();
     }
 
     /**
-     * Returns the latest observations of this datastream with the specified parameters.
+     * Returns the latest observations of this data stream with the specified parameters.
      * Any parameter that is null or empty will be ignored.
      *
      * @param id               List of resource local IDs or unique IDs (URI).
@@ -81,35 +81,35 @@ public class OSHDatastream {
                 .addParameter("observedProperty", observedProperty)
                 .addParameter("limit", limit);
 
-        return getConnectedSystemsApiClientExtras().getObservations(this.id, datastreamResource, queryString.toString()).get();
+        return getConnectedSystemsApiClientExtras().getObservations(this.id, dataStreamResource, queryString.toString()).get();
     }
 
     /**
-     * Push an observation to this datastream.
+     * Push an observation to this data stream.
      *
      * @param observation The observation to add.
      * @return The ID of the observation if the operation was successful, otherwise null.
      */
     public String pushObservation(ObservationData observation) throws ExecutionException, InterruptedException {
-        return getConnectedSystemsApiClientExtras().pushObservation(id, datastreamResource, observation).get();
+        return getConnectedSystemsApiClientExtras().pushObservation(id, dataStreamResource, observation).get();
     }
 
-    public boolean updateDatastream(IDataStreamInfo dataStreamInfo) throws ExecutionException, InterruptedException {
+    public boolean updateDataStream(IDataStreamInfo dataStreamInfo) throws ExecutionException, InterruptedException {
         Integer response = getConnectedSystemsApiClientExtras().updateDataStream(id, dataStreamInfo).get();
         boolean success = response != null && response >= 200 && response < 300;
 
         if (success) {
-            return refreshDatastream();
+            return refreshDataStream();
         }
         return false;
     }
 
-    public boolean refreshDatastream() throws ExecutionException, InterruptedException {
+    public boolean refreshDataStream() throws ExecutionException, InterruptedException {
         IDataStreamInfo response = getConnectedSystemsApiClient().getDatastreamById(id, ResourceFormat.JSON, true).get();
         boolean success = response != null;
 
         if (success) {
-            datastreamResource = response;
+            dataStreamResource = response;
         }
         return success;
     }

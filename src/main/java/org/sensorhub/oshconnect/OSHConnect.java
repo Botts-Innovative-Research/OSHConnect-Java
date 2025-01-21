@@ -4,17 +4,13 @@ import lombok.Getter;
 import lombok.Setter;
 import org.sensorhub.oshconnect.config.ConfigManager;
 import org.sensorhub.oshconnect.config.ConfigManagerJson;
-import org.sensorhub.oshconnect.oshdatamodels.OSHControlStream;
-import org.sensorhub.oshconnect.oshdatamodels.OSHDatastream;
-import org.sensorhub.oshconnect.oshdatamodels.OSHNode;
-import org.sensorhub.oshconnect.oshdatamodels.OSHSystem;
 
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 /**
- * OSHConnect is the main class for connecting to OpenSensorHub servers and managing datastreams.
+ * OSHConnect is the main class for connecting to OpenSensorHub servers and managing data streams.
  */
 @Getter
 public class OSHConnect {
@@ -27,11 +23,11 @@ public class OSHConnect {
      */
     private final NodeManager nodeManager;
     /**
-     * The datastream manager, used to create and manage connections to datastreams.
+     * The data stream manager, used to create and manage connections to data streams.
      */
-    private final DatastreamManager datastreamManager;
+    private final DataStreamManager dataStreamManager;
     /**
-     * The notification manager, used to notify listeners of changes to nodes, systems, and datastreams.
+     * The notification manager, used to notify listeners of changes to nodes, systems, and data streams.
      */
     private final NotificationManager notificationManager;
     /**
@@ -54,7 +50,7 @@ public class OSHConnect {
      */
     public OSHConnect(String name) {
         this.name = name;
-        this.datastreamManager = new DatastreamManager();
+        this.dataStreamManager = new DataStreamManager();
         this.notificationManager = new NotificationManager();
         this.nodeManager = new NodeManager(notificationManager);
     }
@@ -94,18 +90,18 @@ public class OSHConnect {
     /**
      * Discover data streams belonging to all systems previously discovered by OSHConnect.
      * This method should be called after discoverSystems().
-     * Note: This method may take a long time to complete if there are many systems and datastreams to discover;
-     * it is recommended to call {@link OSHSystem#discoverDataStreams()} on individual systems containing the datastreams of interest.
+     * Note: This method may take a long time to complete if there are many systems and data streams to discover;
+     * it is recommended to call {@link OSHSystem#discoverDataStreams()} on individual systems containing the data streams of interest.
      *
      * @return A list of all data streams discovered by OSHConnect.
      */
-    public List<OSHDatastream> discoverDatastreams() throws ExecutionException, InterruptedException {
+    public List<OSHDataStream> discoverDataStreams() throws ExecutionException, InterruptedException {
         for (OSHNode node : nodeManager.getNodes()) {
             for (OSHSystem system : node.getSystems()) {
                 system.discoverDataStreams();
             }
         }
-        return getDatastreams();
+        return getDataStreams();
     }
 
     /**
@@ -133,13 +129,13 @@ public class OSHConnect {
     }
 
     /**
-     * Get a list of all datastreams discovered by OSHConnect.
+     * Get a list of all data streams discovered by OSHConnect.
      *
-     * @return The list of datastreams.
+     * @return The list of data streams.
      */
-    public List<OSHDatastream> getDatastreams() {
+    public List<OSHDataStream> getDataStreams() {
         return nodeManager.getNodes().stream()
-                .flatMap(node -> node.getDatastreams().stream())
+                .flatMap(node -> node.getDataStreams().stream())
                 .collect(Collectors.toList());
     }
 
@@ -155,10 +151,10 @@ public class OSHConnect {
     }
 
     /**
-     * Shutdown all datastreams and remove all nodes.
+     * Shutdown all data streams and remove all nodes.
      */
     public void shutdown() {
-        datastreamManager.shutdown();
+        dataStreamManager.shutdown();
         nodeManager.shutdown();
         notificationManager.shutdown();
     }

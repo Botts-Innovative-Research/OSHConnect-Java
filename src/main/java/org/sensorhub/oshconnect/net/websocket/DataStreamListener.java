@@ -2,8 +2,8 @@ package org.sensorhub.oshconnect.net.websocket;
 
 import lombok.Getter;
 import org.json.JSONObject;
+import org.sensorhub.oshconnect.OSHDataStream;
 import org.sensorhub.oshconnect.net.RequestFormat;
-import org.sensorhub.oshconnect.oshdatamodels.OSHDatastream;
 import org.vast.util.TimeExtent;
 
 import java.nio.ByteBuffer;
@@ -15,21 +15,21 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Listener for a single datastream.
- * Override the {@link #onStreamUpdate(DatastreamEventArgs)} method to handle the data received from the datastream.
- * To listen to multiple datastreams, use a {@link DatastreamHandler}.
+ * Listener for a single data stream.
+ * Override the {@link #onStreamUpdate(DataStreamEventArgs)} method to handle the data received from the data stream.
+ * To listen to multiple data streams, use a {@link DataStreamHandler}.
  */
-public abstract class DatastreamListener implements DatastreamEventListener {
+public abstract class DataStreamListener implements DataStreamEventListener {
     private static final String DATE_REGEX_TEXT = "\\d{4}-\\d{2}-\\d{2}T\\d{2}:";
     private static final String DATE_REGEX_XML = "<[^>]+>(\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d+Z)</[^>]+>";
     /**
-     * The datastream being listened to.
+     * The data stream being listened to.
      */
     @Getter
-    private final OSHDatastream datastream;
+    private final OSHDataStream dataStream;
     private boolean isShutdown = false;
     /**
-     * The WebSocket connection to the datastream.
+     * The WebSocket connection to the data stream.
      */
     private WebSocketConnection webSocketConnection;
     /**
@@ -39,14 +39,14 @@ public abstract class DatastreamListener implements DatastreamEventListener {
     @Getter
     private RequestFormat requestFormat;
     /**
-     * The time period for the datastream.
-     * If null, the time period will not be specified in the request, i.e., will listen to the datastream in real-time.
+     * The time period for the data stream.
+     * If null, the time period will not be specified in the request, i.e., will listen to the data stream in real-time.
      */
     @Getter
     private TimeExtent timeExtent;
     /**
-     * The replay speed for the datastream.
-     * Only applicable for historical datastreams.
+     * The replay speed for the data stream.
+     * Only applicable for historical data streams.
      * 1.0 is the default speed, 0.1 is 10 times slower, 10.0 is 10 times faster.
      * 0 or negative values will result in no data being received.
      */
@@ -54,42 +54,42 @@ public abstract class DatastreamListener implements DatastreamEventListener {
     private double replaySpeed = 1;
 
     /**
-     * Creates a new datastream listener for the specified datastream.
-     * By default, the listener will listen to the datastream in real-time.
+     * Creates a new data stream listener for the specified data stream.
+     * By default, the listener will listen to the data stream in real-time.
      * To listen to historical data, use the setTimeExtent method.
      *
-     * @param datastream the datastream to listen to.
+     * @param dataStream the data stream to listen to.
      */
-    protected DatastreamListener(OSHDatastream datastream) {
-        this.datastream = datastream;
+    protected DataStreamListener(OSHDataStream dataStream) {
+        this.dataStream = dataStream;
     }
 
     /**
-     * Called when the datastream receives an update.
-     * Parses the data and calls {@link #onStreamUpdate(DatastreamEventArgs)}.
+     * Called when the data stream receives an update.
+     * Parses the data and calls {@link #onStreamUpdate(DataStreamEventArgs)}.
      *
-     * @param data the data received from the datastream.
+     * @param data the data received from the data stream.
      */
     public void onStreamUpdate(byte[] data) {
         RequestFormat format = determineRequestFormat(data);
         long timestamp = determineTimestamp(format, data);
 
-        onStreamUpdate(new DatastreamEventArgs(timestamp, data, format, datastream));
+        onStreamUpdate(new DataStreamEventArgs(timestamp, data, format, dataStream));
     }
 
     /**
-     * Called when the datastream receives an update.
-     * Override this method to handle the data received from the datastream.
+     * Called when the data stream receives an update.
+     * Override this method to handle the data received from the data stream.
      *
      * @param args the arguments of the event.
      */
     @Override
-    public void onStreamUpdate(DatastreamEventArgs args) {
+    public void onStreamUpdate(DataStreamEventArgs args) {
         // Default implementation does nothing
     }
 
     /**
-     * Connects to the datastream using the specified request format, replay speed, and time period.
+     * Connects to the data stream using the specified request format, replay speed, and time period.
      */
     public void connect() {
         if (getStatus() == StreamStatus.SHUTDOWN) {
@@ -103,7 +103,7 @@ public abstract class DatastreamListener implements DatastreamEventListener {
     }
 
     /**
-     * Disconnects from the datastream.
+     * Disconnects from the data stream.
      */
     public void disconnect() {
         if (webSocketConnection != null) {
@@ -113,8 +113,8 @@ public abstract class DatastreamListener implements DatastreamEventListener {
     }
 
     /**
-     * Shuts down the datastream listener.
-     * Disconnects from the datastream and prevents further connections.
+     * Shuts down the data stream listener.
+     * Disconnects from the data stream and prevents further connections.
      */
     public void shutdown() {
         isShutdown = true;
@@ -122,7 +122,7 @@ public abstract class DatastreamListener implements DatastreamEventListener {
     }
 
     /**
-     * Reconnects to the datastream.
+     * Reconnects to the data stream.
      * Used when the request format, replay speed, or time period is changed to update the connection.
      */
     private void reconnectIfConnected() {
@@ -134,7 +134,7 @@ public abstract class DatastreamListener implements DatastreamEventListener {
     /**
      * Determines the format of the request based on the data.
      *
-     * @param data the data received from the datastream.
+     * @param data the data received from the data stream.
      * @return the format of the request.
      */
     private RequestFormat determineRequestFormat(byte[] data) {
@@ -163,7 +163,7 @@ public abstract class DatastreamListener implements DatastreamEventListener {
      * Determines the timestamp of the data.
      *
      * @param format the format of the request.
-     * @param data   the data received from the datastream.
+     * @param data   the data received from the data stream.
      * @return the timestamp of the data.
      */
     private long determineTimestamp(RequestFormat format, byte[] data) {
@@ -201,7 +201,7 @@ public abstract class DatastreamListener implements DatastreamEventListener {
     /**
      * Sets the format of the request.
      * If null, the format will not be specified in the request, i.e., the data will be received in the default format.
-     * Calling this method will reconnect to the datastream if it is already connected.
+     * Calling this method will reconnect to the data stream if it is already connected.
      *
      * @param requestFormat the format of the request.
      *                      Set to null to remove the previously set format.
@@ -212,11 +212,11 @@ public abstract class DatastreamListener implements DatastreamEventListener {
     }
 
     /**
-     * Sets the replay speed for the datastream.
-     * Only applicable for historical datastreams.
+     * Sets the replay speed for the data stream.
+     * Only applicable for historical data streams.
      * 1.0 is the default speed, 0.1 is 10 times slower, 10.0 is 10 times faster.
      * 0 or negative values will result in no data being received.
-     * Calling this method will reconnect to the datastream if it is already connected.
+     * Calling this method will reconnect to the data stream if it is already connected.
      *
      * @param replaySpeed the replay speed of the request.
      */
@@ -226,9 +226,9 @@ public abstract class DatastreamListener implements DatastreamEventListener {
     }
 
     /**
-     * Sets the time period for the datastream.
-     * If null, the time period will not be specified in the request, i.e., will listen to the datastream in real-time.
-     * Calling this method will reconnect to the datastream if it is already connected.
+     * Sets the time period for the data stream.
+     * If null, the time period will not be specified in the request, i.e., will listen to the data stream in real-time.
+     * Calling this method will reconnect to the data stream if it is already connected.
      *
      * @param timeExtent the time period of the request.
      *                   Set to null to remove the previously set time period.
@@ -239,7 +239,7 @@ public abstract class DatastreamListener implements DatastreamEventListener {
     }
 
     /**
-     * Builds the request string for the datastream.
+     * Builds the request string for the data stream.
      *
      * @return the request string.
      */
@@ -254,7 +254,7 @@ public abstract class DatastreamListener implements DatastreamEventListener {
             parameters.put("replaySpeed", String.valueOf(replaySpeed));
         }
 
-        StringBuilder request = new StringBuilder(datastream.getObservationsEndpoint());
+        StringBuilder request = new StringBuilder(dataStream.getObservationsEndpoint());
         if (!parameters.isEmpty()) {
             request.append("?");
             for (Map.Entry<String, String> entry : parameters.entrySet()) {

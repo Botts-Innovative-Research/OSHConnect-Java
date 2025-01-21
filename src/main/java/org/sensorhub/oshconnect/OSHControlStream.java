@@ -1,4 +1,4 @@
-package org.sensorhub.oshconnect.oshdatamodels;
+package org.sensorhub.oshconnect;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

@@ -1,4 +1,4 @@
-package org.sensorhub.oshconnect.oshdatamodels;
+package org.sensorhub.oshconnect;
 
 import com.google.gson.Gson;
 import lombok.Getter;
@@ -172,15 +172,15 @@ public class OSHNode {
      * Discover data streams belonging to the systems of this OpenSensorHub node.
      * This method should be called after discoverSystems().
      * Note: This method may take a long time to complete if there are many data streams to discover;
-     * it is recommended to call {@link OSHSystem#discoverDataStreams()} on individual systems containing the datastreams of interest.
+     * it is recommended to call {@link OSHSystem#discoverDataStreams()} on individual systems containing the data streams of interest.
      *
-     * @return The list of datastreams.
+     * @return The list of data streams.
      */
-    public List<OSHDatastream> discoverDatastreams() throws ExecutionException, InterruptedException {
+    public List<OSHDataStream> discoverDataStreams() throws ExecutionException, InterruptedException {
         for (OSHSystem system : systems) {
             system.discoverDataStreams();
         }
-        return getDatastreams();
+        return getDataStreams();
     }
 
     /**
@@ -228,16 +228,16 @@ public class OSHNode {
     }
 
     /**
-     * Get a list of discovered datastreams for all systems of this node.
+     * Get a list of discovered data streams for all systems of this node.
      *
-     * @return The list of datastreams.
+     * @return The list of data streams.
      */
-    public List<OSHDatastream> getDatastreams() {
-        List<OSHDatastream> datastreams = new ArrayList<>();
+    public List<OSHDataStream> getDataStreams() {
+        List<OSHDataStream> dataStreams = new ArrayList<>();
         for (OSHSystem system : systems) {
-            datastreams.addAll(system.getDatastreams());
+            dataStreams.addAll(system.getDataStreams());
         }
-        return datastreams;
+        return dataStreams;
     }
 
     /**

@@ -4,34 +4,33 @@
  */
 package org.sensorhub.oshconnect.net.websocket;
 
+import lombok.Getter;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.WebSocketListener;
 import org.eclipse.jetty.websocket.client.ClientUpgradeRequest;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
-import org.sensorhub.oshconnect.oshdatamodels.OSHNode;
+import org.sensorhub.oshconnect.OSHNode;
 
 import java.net.URI;
-
-import lombok.Getter;
 
 /**
  * Class representing an active connection to a WebSocket.
  */
 public class WebSocketConnection implements WebSocketListener {
-    private final DatastreamListener streamListener;
+    private final DataStreamListener streamListener;
     private final String request;
     private final WebSocketClient client = new WebSocketClient();
     @Getter
     private StreamStatus status = StreamStatus.DISCONNECTED;
 
-    public WebSocketConnection(DatastreamListener streamListener, String request) {
+    public WebSocketConnection(DataStreamListener streamListener, String request) {
         this.streamListener = streamListener;
         this.request = request;
     }
 
     public void connect() {
         if (status != StreamStatus.CONNECTED) {
-            OSHNode parentNode = streamListener.getDatastream().getParentSystem().getParentNode();
+            OSHNode parentNode = streamListener.getDataStream().getParentSystem().getParentNode();
 
             // Build the request on the WebSocket protocol
             String urlString = parentNode.getWSPrefix() + request;

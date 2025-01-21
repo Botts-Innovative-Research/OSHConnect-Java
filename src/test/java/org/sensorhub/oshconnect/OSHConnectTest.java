@@ -1,14 +1,11 @@
 package org.sensorhub.oshconnect;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.sensorhub.oshconnect.TestConstants.IS_SECURE;
-import static org.sensorhub.oshconnect.TestConstants.PASSWORD;
-import static org.sensorhub.oshconnect.TestConstants.SENSOR_HUB_ROOT;
-import static org.sensorhub.oshconnect.TestConstants.USERNAME;
-
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.sensorhub.oshconnect.TestConstants.*;
 
 class OSHConnectTest {
     private OSHConnect oshConnect;
@@ -32,17 +29,17 @@ class OSHConnectTest {
 
     @Test
     void shutdown() {
-        DatastreamManager datastreamManager = oshConnect.getDatastreamManager();
-        datastreamManager.createDatastreamHandler(args -> {
+        DataStreamManager dataStreamManager = oshConnect.getDataStreamManager();
+        dataStreamManager.createDataStreamHandler(args -> {
             // Do nothing
         });
         oshConnect.createNode(SENSOR_HUB_ROOT, IS_SECURE, USERNAME, PASSWORD);
         oshConnect.createNode("different.url", IS_SECURE, USERNAME, PASSWORD);
 
         assertEquals(2, oshConnect.getNodeManager().getNodes().size());
-        assertEquals(1, datastreamManager.getDatastreamHandlers().size());
+        assertEquals(1, dataStreamManager.getDataStreamHandlers().size());
         oshConnect.shutdown();
         assertEquals(0, oshConnect.getNodeManager().getNodes().size());
-        assertEquals(0, datastreamManager.getDatastreamHandlers().size());
+        assertEquals(0, dataStreamManager.getDataStreamHandlers().size());
     }
 }

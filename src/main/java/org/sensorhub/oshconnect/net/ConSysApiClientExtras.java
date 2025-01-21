@@ -77,12 +77,12 @@ public class ConSysApiClientExtras {
     }
 
     /**
-     * Get the datastream IDs for a system.
+     * Get the data stream IDs for a system.
      *
      * @param systemID The ID of the system.
-     * @return A list of datastream IDs.
+     * @return A list of data stream IDs.
      */
-    public CompletableFuture<List<String>> getDatastreamIds(String systemID) {
+    public CompletableFuture<List<String>> getDataStreamIds(String systemID) {
         return sendGetRequest(endpoint.resolve(SYSTEMS_COLLECTION + "/" + systemID + "/" + DATASTREAMS_COLLECTION), ResourceFormat.JSON, body -> {
             try {
                 var ctx = new RequestContext(body);
@@ -90,32 +90,32 @@ public class ConSysApiClientExtras {
                 JsonObject bodyJson = JsonParser.parseReader(new InputStreamReader(ctx.getInputStream())).getAsJsonObject();
                 JsonArray features = bodyJson.getAsJsonArray(JSON_ARRAY_ITEMS);
 
-                List<String> datastreams = new ArrayList<>();
+                List<String> dataStreams = new ArrayList<>();
                 for (var feature : features) {
                     // Get the ID
                     var id = feature.getAsJsonObject().entrySet().stream()
                             .filter(e -> e.getKey().equals("id"))
                             .findFirst()
                             .orElseThrow(() -> new IOException("No id found in feature"));
-                    datastreams.add(id.getValue().getAsString());
+                    dataStreams.add(id.getValue().getAsString());
                 }
 
-                return datastreams;
+                return dataStreams;
             } catch (IOException e) {
                 throw new CompletionException(e);
             }
         });
     }
 
-    public CompletableFuture<Integer> deleteDatastream(String dataStreamId) {
+    public CompletableFuture<Integer> deleteDataStream(String dataStreamId) {
         return sendDeleteRequest(endpoint.resolve(DATASTREAMS_COLLECTION + "/" + dataStreamId));
     }
 
     /**
-     * Push an observation to a datastream.
+     * Push an observation to a data stream.
      *
-     * @param dataStreamId The ID of the datastream.
-     * @param dataStream   The datastream object.
+     * @param dataStreamId The ID of the data stream.
+     * @param dataStream   The data stream object.
      * @param obs          The observation to push.
      * @return The ID of the observation if the operation was successful, otherwise null.
      */
@@ -145,7 +145,7 @@ public class ConSysApiClientExtras {
      * Get an observation by ID.
      *
      * @param observationId The ID of the observation.
-     * @param dataStream    The datastream object.
+     * @param dataStream    The data stream object.
      * @return The observation.
      */
     public CompletableFuture<ObservationData> getObservation(String observationId, IDataStreamInfo dataStream) {
@@ -168,10 +168,10 @@ public class ConSysApiClientExtras {
     }
 
     /**
-     * Get the latest set of observations for a datastream.
+     * Get the latest set of observations for a data stream.
      *
-     * @param dataStreamId The ID of the datastream.
-     * @param dataStream   The datastream object.
+     * @param dataStreamId The ID of the data stream.
+     * @param dataStream   The data stream object.
      * @return A list of observations.
      */
     public CompletableFuture<List<ObservationData>> getObservations(String dataStreamId, IDataStreamInfo dataStream) {
@@ -179,10 +179,10 @@ public class ConSysApiClientExtras {
     }
 
     /**
-     * Get a set of observations for a datastream with a query string.
+     * Get a set of observations for a data stream with a query string.
      *
-     * @param dataStreamId The ID of the datastream.
-     * @param dataStream   The datastream object.
+     * @param dataStreamId The ID of the data stream.
+     * @param dataStream   The data stream object.
      * @param queryString  The query string to include in the request.
      *                     Valid parameters are:
      *                     <ul>
@@ -215,7 +215,6 @@ public class ConSysApiClientExtras {
             queryString = "?" + queryString;
 
         String url = DATASTREAMS_COLLECTION + "/" + dataStreamId + "/" + OBSERVATIONS_COLLECTION + queryString;
-        System.out.println("URL: " + url);
 
         return sendGetRequest(endpoint.resolve(url), ResourceFormat.OM_JSON, body -> {
             try {

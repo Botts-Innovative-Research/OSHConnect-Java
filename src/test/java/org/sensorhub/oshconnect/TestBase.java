@@ -18,7 +18,6 @@ import org.sensorhub.impl.service.HttpServerConfig;
 import org.sensorhub.impl.service.consys.ConSysApiService;
 import org.sensorhub.impl.service.consys.ConSysApiServiceConfig;
 import org.sensorhub.impl.service.consys.sensorml.SystemAdapter;
-import org.sensorhub.oshconnect.oshdatamodels.OSHNode;
 import org.vast.data.TextEncodingImpl;
 import org.vast.sensorML.SMLHelper;
 import org.vast.swe.helper.GeoPosHelper;

@@ -1,11 +1,8 @@
 package org.sensorhub.oshconnect;
 
-import org.sensorhub.oshconnect.notification.INotificationDatastream;
+import org.sensorhub.oshconnect.notification.INotificationDataStream;
 import org.sensorhub.oshconnect.notification.INotificationNode;
 import org.sensorhub.oshconnect.notification.INotificationSystem;
-import org.sensorhub.oshconnect.oshdatamodels.OSHDatastream;
-import org.sensorhub.oshconnect.oshdatamodels.OSHNode;
-import org.sensorhub.oshconnect.oshdatamodels.OSHSystem;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -15,9 +12,9 @@ import java.util.Set;
 public class NotificationManager {
     private final Set<INotificationNode> nodeNotificationListeners = new HashSet<>();
     private final Set<INotificationSystem> systemNotificationListeners = new HashSet<>();
-    private final Set<INotificationDatastream> datastreamNotificationListeners = new HashSet<>();
+    private final Set<INotificationDataStream> dataStreamNotificationListeners = new HashSet<>();
     private final Map<OSHNode, INotificationSystem> systemNotificationListenersInternal = new HashMap<>();
-    private final Map<OSHSystem, INotificationDatastream> datastreamNotificationListenersInternal = new HashMap<>();
+    private final Map<OSHSystem, INotificationDataStream> dataStreamNotificationListenersInternal = new HashMap<>();
 
     /**
      * Package-private constructor, to be used by OSHConnect.
@@ -45,20 +42,20 @@ public class NotificationManager {
     }
 
     /**
-     * Create a datastream notification listener, to be used when a system is added to OSHConnect.
+     * Create a data stream notification listener, to be used when a system is added to OSHConnect.
      *
-     * @return The datastream notification listener.
+     * @return The data stream notification listener.
      */
-    private INotificationDatastream createDatastreamNotificationListener() {
-        return new INotificationDatastream() {
+    private INotificationDataStream createDataStreamNotificationListener() {
+        return new INotificationDataStream() {
             @Override
-            public void onItemAdded(OSHDatastream item) {
-                notifyDatastreamAdded(item);
+            public void onItemAdded(OSHDataStream item) {
+                notifyDataStreamAdded(item);
             }
 
             @Override
-            public void onItemRemoved(OSHDatastream item) {
-                notifyDatastreamRemoved(item);
+            public void onItemRemoved(OSHDataStream item) {
+                notifyDataStreamRemoved(item);
             }
         };
     }
@@ -102,22 +99,22 @@ public class NotificationManager {
     }
 
     /**
-     * Add a datastream notification listener.
-     * Listeners are notified when a datastream is added or removed from OSHConnect for any system.
+     * Add a data stream notification listener.
+     * Listeners are notified when a data stream is added or removed from OSHConnect for any system.
      *
      * @param listener The listener.
      */
-    public void addDatastreamNotificationListener(INotificationDatastream listener) {
-        datastreamNotificationListeners.add(listener);
+    public void addDataStreamNotificationListener(INotificationDataStream listener) {
+        dataStreamNotificationListeners.add(listener);
     }
 
     /**
-     * Remove a datastream notification listener.
+     * Remove a data stream notification listener.
      *
      * @param listener The listener.
      */
-    public void removeDatastreamNotificationListener(INotificationDatastream listener) {
-        datastreamNotificationListeners.remove(listener);
+    public void removeDataStreamNotificationListener(INotificationDataStream listener) {
+        dataStreamNotificationListeners.remove(listener);
     }
 
     /**
@@ -151,56 +148,56 @@ public class NotificationManager {
 
     /**
      * Notify listeners that a system has been added.
-     * Subscribe to datastream notifications for the system.
+     * Subscribe to data stream notifications for the system.
      *
      * @param system The system.
      */
     void notifySystemAdded(OSHSystem system) {
         systemNotificationListeners.forEach(listener -> listener.onItemAdded(system));
 
-        INotificationDatastream datastreamListener = createDatastreamNotificationListener();
-        system.addDatastreamNotificationListener(datastreamListener);
-        datastreamNotificationListenersInternal.put(system, datastreamListener);
+        INotificationDataStream dataStreamListener = createDataStreamNotificationListener();
+        system.addDataStreamNotificationListener(dataStreamListener);
+        dataStreamNotificationListenersInternal.put(system, dataStreamListener);
     }
 
     /**
      * Notify listeners that a system has been removed.
-     * Unsubscribe from datastream notifications for the system.
+     * Unsubscribe from data stream notifications for the system.
      *
      * @param system The system.
      */
     void notifySystemRemoved(OSHSystem system) {
         systemNotificationListeners.forEach(listener -> listener.onItemRemoved(system));
 
-        INotificationDatastream datastreamListener = datastreamNotificationListenersInternal.remove(system);
-        if (datastreamListener != null) {
-            system.removeDatastreamNotificationListener(datastreamListener);
+        INotificationDataStream dataStreamListener = dataStreamNotificationListenersInternal.remove(system);
+        if (dataStreamListener != null) {
+            system.removeDataStreamNotificationListener(dataStreamListener);
         }
     }
 
     /**
-     * Notify listeners that a datastream has been added.
+     * Notify listeners that a data stream has been added.
      *
-     * @param datastream The datastream.
+     * @param dataStream The data stream.
      */
-    void notifyDatastreamAdded(OSHDatastream datastream) {
-        datastreamNotificationListeners.forEach(listener -> listener.onItemAdded(datastream));
+    void notifyDataStreamAdded(OSHDataStream dataStream) {
+        dataStreamNotificationListeners.forEach(listener -> listener.onItemAdded(dataStream));
     }
 
     /**
-     * Notify listeners that a datastream has been removed.
+     * Notify listeners that a data stream has been removed.
      *
-     * @param datastream The datastream.
+     * @param dataStream The data stream.
      */
-    void notifyDatastreamRemoved(OSHDatastream datastream) {
-        datastreamNotificationListeners.forEach(listener -> listener.onItemRemoved(datastream));
+    void notifyDataStreamRemoved(OSHDataStream dataStream) {
+        dataStreamNotificationListeners.forEach(listener -> listener.onItemRemoved(dataStream));
     }
 
     void shutdown() {
         nodeNotificationListeners.clear();
         systemNotificationListeners.clear();
-        datastreamNotificationListeners.clear();
+        dataStreamNotificationListeners.clear();
         systemNotificationListenersInternal.clear();
-        datastreamNotificationListenersInternal.clear();
+        dataStreamNotificationListenersInternal.clear();
     }
 }

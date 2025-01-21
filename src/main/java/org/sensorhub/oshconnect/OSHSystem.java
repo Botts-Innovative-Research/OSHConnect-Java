@@ -1,4 +1,4 @@
-package org.sensorhub.oshconnect.oshdatamodels;
+package org.sensorhub.oshconnect;
 
 import lombok.Getter;
 import org.sensorhub.api.data.DataStreamInfo;
@@ -11,7 +11,7 @@ import org.sensorhub.oshconnect.net.APIRequest;
 import org.sensorhub.oshconnect.net.APIResponse;
 import org.sensorhub.oshconnect.net.ConSysApiClientExtras;
 import org.sensorhub.oshconnect.notification.INotificationControlStream;
-import org.sensorhub.oshconnect.notification.INotificationDatastream;
+import org.sensorhub.oshconnect.notification.INotificationDataStream;
 import org.sensorhub.oshconnect.util.Utilities;
 
 import java.util.HashSet;
@@ -25,9 +25,9 @@ import java.util.concurrent.ExecutionException;
 public class OSHSystem {
     @Getter
     private final OSHNode parentNode;
-    private final Set<OSHDatastream> datastreams = new HashSet<>();
+    private final Set<OSHDataStream> dataStreams = new HashSet<>();
     private final Set<OSHControlStream> controlStreams = new HashSet<>();
-    private final Set<INotificationDatastream> datastreamNotificationListeners = new HashSet<>();
+    private final Set<INotificationDataStream> dataStreamNotificationListeners = new HashSet<>();
     private final Set<INotificationControlStream> controlStreamNotificationListeners = new HashSet<>();
     @Getter
     private ISystemWithDesc systemResource;
@@ -38,23 +38,23 @@ public class OSHSystem {
     }
 
     /**
-     * Discover the datastreams associated with the system.
+     * Discover the data streams associated with the system.
      *
-     * @return The list of datastreams.
+     * @return The list of data streams.
      */
-    public List<OSHDatastream> discoverDataStreams() throws ExecutionException, InterruptedException {
-        var dataStreamIds = getConnectedSystemsApiClientExtras().getDatastreamIds(getId()).get();
+    public List<OSHDataStream> discoverDataStreams() throws ExecutionException, InterruptedException {
+        var dataStreamIds = getConnectedSystemsApiClientExtras().getDataStreamIds(getId()).get();
         for (var id : dataStreamIds) {
-            if (datastreams.stream().noneMatch(ds -> ds.getId().equals(id))) {
-                var datastreamResource = getConnectedSystemsApiClient().getDatastreamById(id, ResourceFormat.JSON, true).get();
-                if (datastreamResource != null) {
-                    OSHDatastream datastream = new OSHDatastream(this, id, datastreamResource);
-                    datastreams.add(datastream);
-                    notifyDatastreamAdded(datastream);
+            if (dataStreams.stream().noneMatch(ds -> ds.getId().equals(id))) {
+                var dataStreamResource = getConnectedSystemsApiClient().getDatastreamById(id, ResourceFormat.JSON, true).get();
+                if (dataStreamResource != null) {
+                    OSHDataStream dataStream = new OSHDataStream(this, id, dataStreamResource);
+                    dataStreams.add(dataStream);
+                    notifyDataStreamAdded(dataStream);
                 }
             }
         }
-        return getDatastreams();
+        return getDataStreams();
     }
 
     /**
@@ -108,48 +108,48 @@ public class OSHSystem {
     }
 
     /**
-     * Create a new datastream associated with the system.
+     * Create a new data stream associated with the system.
      *
-     * @param datastreamResource The datastream properties.
-     * @return The new datastream or null if the creation failed.
+     * @param dataStreamResource The data stream properties.
+     * @return The new data stream or null if the creation failed.
      */
-    public OSHDatastream createDatastream(DataStreamInfo datastreamResource) throws ExecutionException, InterruptedException {
-        String id = getConnectedSystemsApiClient().addDataStream(getId(), datastreamResource).get();
+    public OSHDataStream createDataStream(DataStreamInfo dataStreamResource) throws ExecutionException, InterruptedException {
+        String id = getConnectedSystemsApiClient().addDataStream(getId(), dataStreamResource).get();
         if (id == null) return null;
 
-        var newDatastreamResource = getConnectedSystemsApiClient().getDatastreamById(id, ResourceFormat.JSON, true).get();
-        if (newDatastreamResource == null) return null;
+        var newDataStreamResource = getConnectedSystemsApiClient().getDatastreamById(id, ResourceFormat.JSON, true).get();
+        if (newDataStreamResource == null) return null;
 
-        OSHDatastream datastream = new OSHDatastream(this, id, newDatastreamResource);
-        datastreams.add(datastream);
-        notifyDatastreamAdded(datastream);
-        return datastream;
+        OSHDataStream dataStream = new OSHDataStream(this, id, newDataStreamResource);
+        dataStreams.add(dataStream);
+        notifyDataStreamAdded(dataStream);
+        return dataStream;
     }
 
     /**
-     * Delete a datastream associated with the system.
+     * Delete a data stream associated with the system.
      *
-     * @param datastream The datastream to delete.
+     * @param dataStream The data stream to delete.
      * @return True if the deletion was successful, false otherwise.
      */
-    public boolean deleteDatastream(OSHDatastream datastream) throws ExecutionException, InterruptedException {
-        Integer response = getConnectedSystemsApiClientExtras().deleteDatastream(datastream.getId()).get();
+    public boolean deleteDataStream(OSHDataStream dataStream) throws ExecutionException, InterruptedException {
+        Integer response = getConnectedSystemsApiClientExtras().deleteDataStream(dataStream.getId()).get();
         boolean success = response != null && response >= 200 && response < 300;
 
         if (success) {
-            datastreams.remove(datastream);
-            notifyDatastreamRemoved(datastream);
+            dataStreams.remove(dataStream);
+            notifyDataStreamRemoved(dataStream);
         }
 
         return success;
     }
 
     /**
-     * Get the endpoint for the datastreams of this system.
+     * Get the endpoint for the data streams of this system.
      *
      * @return The endpoint.
      */
-    public String getDatastreamsEndpoint() {
+    public String getDataStreamsEndpoint() {
         return Utilities.joinPath(parentNode.getSystemsEndpoint(), systemResource.getId(), Service.DATASTREAMS.getEndpoint());
     }
 
@@ -172,12 +172,12 @@ public class OSHSystem {
     }
 
     /**
-     * Get a list of discovered datastreams associated with the system.
+     * Get a list of discovered data streams associated with the system.
      *
-     * @return The datastreams.
+     * @return The data streams.
      */
-    public List<OSHDatastream> getDatastreams() {
-        return List.copyOf(datastreams);
+    public List<OSHDataStream> getDataStreams() {
+        return List.copyOf(dataStreams);
     }
 
     /**
@@ -198,42 +198,42 @@ public class OSHSystem {
     }
 
     /**
-     * Add a listener for datastream notifications.
+     * Add a listener for data stream notifications.
      *
      * @param listener The listener.
      */
-    public void addDatastreamNotificationListener(INotificationDatastream listener) {
-        datastreamNotificationListeners.add(listener);
+    public void addDataStreamNotificationListener(INotificationDataStream listener) {
+        dataStreamNotificationListeners.add(listener);
     }
 
     /**
-     * Remove a listener for datastream notifications.
+     * Remove a listener for data stream notifications.
      *
      * @param listener The listener.
      */
-    public void removeDatastreamNotificationListener(INotificationDatastream listener) {
-        datastreamNotificationListeners.remove(listener);
+    public void removeDataStreamNotificationListener(INotificationDataStream listener) {
+        dataStreamNotificationListeners.remove(listener);
     }
 
     /**
-     * Notify listeners of a new datastream.
+     * Notify listeners of a new data stream.
      *
-     * @param datastream The datastream.
+     * @param dataStream The data stream.
      */
-    public void notifyDatastreamAdded(OSHDatastream datastream) {
-        for (INotificationDatastream listener : datastreamNotificationListeners) {
-            listener.onItemAdded(datastream);
+    public void notifyDataStreamAdded(OSHDataStream dataStream) {
+        for (INotificationDataStream listener : dataStreamNotificationListeners) {
+            listener.onItemAdded(dataStream);
         }
     }
 
     /**
-     * Notify listeners of a removed datastream.
+     * Notify listeners of a removed data stream.
      *
-     * @param datastream The datastream.
+     * @param dataStream The data stream.
      */
-    public void notifyDatastreamRemoved(OSHDatastream datastream) {
-        for (INotificationDatastream listener : datastreamNotificationListeners) {
-            listener.onItemRemoved(datastream);
+    public void notifyDataStreamRemoved(OSHDataStream dataStream) {
+        for (INotificationDataStream listener : dataStreamNotificationListeners) {
+            listener.onItemRemoved(dataStream);
         }
     }
 
