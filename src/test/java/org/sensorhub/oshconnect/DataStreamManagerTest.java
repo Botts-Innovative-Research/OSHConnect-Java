@@ -135,10 +135,9 @@ class DataStreamManagerTest extends TestBase {
             cf.complete(null);
 
             // Ensure that the observation time is within the listening period.
-            String obsTime = args.getObservation().getPhenomenonTime();
-            Instant obsInstant = Instant.parse(obsTime);
-            assertTrue(obsInstant.isAfter(listenStart));
-            assertTrue(obsInstant.isBefore(listenEnd));
+            Instant obsTime = args.getObservation().getPhenomenonTime();
+            assertTrue(obsTime.isAfter(listenStart));
+            assertTrue(obsTime.isBefore(listenEnd));
         });
         handler.addDatastream(dataStream);
 

@@ -7,7 +7,6 @@ import org.sensorhub.api.system.ISystemWithDesc;
 import org.sensorhub.impl.service.consys.client.ConSysApiClient;
 import org.sensorhub.impl.service.consys.resource.ResourceFormat;
 import org.sensorhub.oshconnect.constants.Service;
-import org.sensorhub.oshconnect.datamodels.Observation;
 import org.sensorhub.oshconnect.net.APIRequest;
 import org.sensorhub.oshconnect.net.APIResponse;
 import org.sensorhub.oshconnect.net.ConSysApiClientExtras;
@@ -320,65 +319,6 @@ public class OSHNode {
         for (INotificationSystem listener : systemNotificationListeners) {
             listener.onItemRemoved(system);
         }
-    }
-
-    /**
-     * Get an observation from the OpenSensorHub node.
-     *
-     * @param id The ID of the observation.
-     * @return The observation as a JSON string.
-     */
-    public String getObservation(String id) {
-        APIRequest request = new APIRequest();
-        request.setUrl(Utilities.joinPath(getHTTPPrefix(), getObservationsEndpoint(), id));
-        request.setAuthorizationToken(authorizationToken);
-        APIResponse response = request.get();
-        return response.getResponseBody();
-    }
-
-    /**
-     * Get an observation from the OpenSensorHub node as an Observation object.
-     * Note: This method will return null if the response body is not a JSON object.
-     *
-     * @param id The ID of the observation.
-     * @return The observation as an Observation object.
-     */
-    public Observation getObservationObject(String id) {
-        APIRequest request = new APIRequest();
-        request.setUrl(Utilities.joinPath(getHTTPPrefix(), getObservationsEndpoint(), id));
-        request.setAuthorizationToken(authorizationToken);
-        APIResponse response = request.get();
-        return response.getItem(Observation.class);
-    }
-
-    /**
-     * Update the specified observation.
-     *
-     * @param id          The ID of the observation.
-     * @param observation The observation object.
-     * @return True if the update was successful, false otherwise.
-     */
-    public boolean updateObservation(String id, Observation observation) {
-        APIRequest request = new APIRequest();
-        request.setUrl(Utilities.joinPath(getHTTPPrefix(), getObservationsEndpoint(), id));
-        request.setBody(observation.toJson());
-        request.setAuthorizationToken(authorizationToken);
-        APIResponse response = request.put();
-        return response.isSuccessful();
-    }
-
-    /**
-     * Delete the specified observation.
-     *
-     * @param id The ID of the observation.
-     * @return True if the deletion was successful, false otherwise.
-     */
-    public boolean deleteObservation(String id) {
-        APIRequest request = new APIRequest();
-        request.setUrl(Utilities.joinPath(getHTTPPrefix(), getObservationsEndpoint(), id));
-        request.setAuthorizationToken(authorizationToken);
-        APIResponse response = request.delete();
-        return response.isSuccessful();
     }
 
     private OSHSystem getSystemByUid(String uid) throws ExecutionException, InterruptedException {
