@@ -4,13 +4,12 @@ import lombok.Getter;
 import org.json.JSONObject;
 import org.sensorhub.oshconnect.OSHDataStream;
 import org.sensorhub.oshconnect.net.RequestFormat;
+import org.sensorhub.oshconnect.util.QueryStringBuilder;
 import org.vast.util.TimeExtent;
 
 import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -244,26 +243,16 @@ public abstract class DataStreamListener implements DataStreamEventListener {
      * @return the request string.
      */
     private String buildRequestString() {
-        Map<String, String> parameters = new HashMap<>();
-
+        QueryStringBuilder queryString = new QueryStringBuilder();
         if (requestFormat != null) {
-            parameters.put("format", requestFormat.getMimeType());
+            queryString.addParameter("format", requestFormat.getMimeType());
         }
         if (timeExtent != null && !timeExtent.isNow()) {
-            parameters.put("phenomenonTime", timeExtent.isoStringUTC(false));
-            parameters.put("replaySpeed", String.valueOf(replaySpeed));
+            queryString.addParameter("phenomenonTime", timeExtent);
+            queryString.addParameter("replaySpeed", replaySpeed);
         }
 
-        StringBuilder request = new StringBuilder(dataStream.getObservationsEndpoint());
-        if (!parameters.isEmpty()) {
-            request.append("?");
-            for (Map.Entry<String, String> entry : parameters.entrySet()) {
-                request.append(entry.getKey()).append("=").append(entry.getValue()).append("&");
-            }
-            request = new StringBuilder(request.substring(0, request.length() - 1));
-        }
-
-        return request.toString();
+        return dataStream.getObservationsEndpoint() + queryString;
     }
 
     public StreamStatus getStatus() {
