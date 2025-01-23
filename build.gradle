@@ -30,6 +30,7 @@ dependencies {
 
     testImplementation platform('org.junit:junit-bom:5.10.0')
     testImplementation 'org.junit.jupiter:junit-jupiter-api'
+    testImplementation 'org.awaitility:awaitility:4.2.2'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
 }
 
