@@ -9,7 +9,9 @@ import org.vast.util.TimeExtent;
 
 import java.nio.ByteBuffer;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -26,6 +28,7 @@ public abstract class DataStreamListener implements DataStreamEventListener {
      */
     @Getter
     private final OSHDataStream dataStream;
+    private final List<StatusListener> statusListeners = new ArrayList<>();
     private boolean isShutdown = false;
     /**
      * The WebSocket connection to the data stream.
@@ -47,7 +50,7 @@ public abstract class DataStreamListener implements DataStreamEventListener {
      * The replay speed for the data stream.
      * Only applicable for historical data streams.
      * 1.0 is the default speed, 0.1 is 10 times slower, 10.0 is 10 times faster.
-     * 0 or negative values will result in no data being received.
+     * Zero or negative values will result in no data being received.
      */
     @Getter
     private double replaySpeed = 1;
@@ -98,6 +101,7 @@ public abstract class DataStreamListener implements DataStreamEventListener {
         disconnect();
         String request = buildRequestString();
         webSocketConnection = new WebSocketConnection(this, request);
+        webSocketConnection.addStatusListener(this::updateStatus);
         webSocketConnection.connect();
     }
 
@@ -118,6 +122,7 @@ public abstract class DataStreamListener implements DataStreamEventListener {
     public void shutdown() {
         isShutdown = true;
         disconnect();
+        updateStatus(StreamStatus.SHUTDOWN);
     }
 
     /**
@@ -214,7 +219,7 @@ public abstract class DataStreamListener implements DataStreamEventListener {
      * Sets the replay speed for the data stream.
      * Only applicable for historical data streams.
      * 1.0 is the default speed, 0.1 is 10 times slower, 10.0 is 10 times faster.
-     * 0 or negative values will result in no data being received.
+     * Zero or negative values will result in no data being received.
      * Calling this method will reconnect to the data stream if it is already connected.
      *
      * @param replaySpeed the replay speed of the request.
@@ -262,6 +267,20 @@ public abstract class DataStreamListener implements DataStreamEventListener {
             return StreamStatus.DISCONNECTED;
         } else {
             return webSocketConnection.getStatus();
+        }
+    }
+
+    public void addStatusListener(StatusListener listener) {
+        statusListeners.add(listener);
+    }
+
+    public void removeStatusListener(StatusListener listener) {
+        statusListeners.remove(listener);
+    }
+
+    private void updateStatus(StreamStatus newStatus) {
+        for (StatusListener listener : statusListeners) {
+            listener.onStatusChanged(newStatus);
         }
     }
 }

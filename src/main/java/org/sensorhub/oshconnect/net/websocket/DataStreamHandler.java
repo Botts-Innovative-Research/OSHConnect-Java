@@ -38,7 +38,7 @@ public abstract class DataStreamHandler implements DataStreamEventListener {
      * The replay speed for the data stream.
      * Only applicable for historical data streams.
      * 1.0 is the default speed, 0.1 is 10 times slower, 10.0 is 10 times faster.
-     * 0 or negative values will result in no data being received.
+     * Zero or negative values will result in no data being received.
      */
     @Getter
     private double replaySpeed = 1;
@@ -89,7 +89,7 @@ public abstract class DataStreamHandler implements DataStreamEventListener {
      * The handler will no longer be usable after this method is called.
      */
     public void shutdown() {
-        shutdownAllDatastreams();
+        shutdownAllDataStreamListeners();
         status = StreamStatus.SHUTDOWN;
     }
 
@@ -100,9 +100,15 @@ public abstract class DataStreamHandler implements DataStreamEventListener {
      *
      * @param dataStream the data stream to add.
      */
-    public void addDatastream(OSHDataStream dataStream) {
-        if (dataStreamListeners.stream().anyMatch(l -> l.getDataStream().equals(dataStream))) {
-            return;
+    public DataStreamListener addDataStreamListener(OSHDataStream dataStream) {
+        if (dataStream == null) {
+            throw new IllegalArgumentException("Data stream cannot be null.");
+        }
+
+        for (DataStreamListener listener : dataStreamListeners) {
+            if (listener.getDataStream().equals(dataStream)) {
+                return listener;
+            }
         }
 
         DataStreamListener listener = new DataStreamListener(dataStream) {
@@ -120,39 +126,56 @@ public abstract class DataStreamHandler implements DataStreamEventListener {
         if (status == StreamStatus.CONNECTED) {
             listener.connect();
         }
+
+        return listener;
     }
 
     /**
      * Disconnects from the data stream and removes it from the handler.
      *
      * @param dataStream the data stream to remove.
+     * @return true if the DataStreamListener was shut down and removed, false if the data stream was not in the handler.
      */
-    public void shutdownDatastream(OSHDataStream dataStream) {
+    public boolean shutdownDataStreamListener(OSHDataStream dataStream) {
+        if (dataStream == null) return false;
+
         DataStreamListener listener = dataStreamListeners.stream()
                 .filter(l -> l.getDataStream().equals(dataStream))
                 .findFirst()
                 .orElse(null);
-        if (listener != null) {
+        return shutdownDataStreamListener(listener);
+    }
+
+    /**
+     * Disconnects from the data stream and removes it from the handler.
+     * If the DataStreamListener does not belong to this handler, this method will do nothing.
+     *
+     * @param listener the DataStreamListener to remove.
+     * @return true if the DataStreamListener was removed, false if the DataStreamListener was not in the handler.
+     */
+    public boolean shutdownDataStreamListener(DataStreamListener listener) {
+        if (listener == null) return false;
+
+        boolean removed = dataStreamListeners.remove(listener);
+        if (removed) {
             listener.shutdown();
-            dataStreamListeners.remove(listener);
         }
+        return removed;
     }
 
     /**
      * Shuts down all data streams and removes them from the handler.
      */
-    public void shutdownAllDatastreams() {
-        dataStreamListeners.forEach(DataStreamListener::disconnect);
+    public void shutdownAllDataStreamListeners() {
+        dataStreamListeners.forEach(DataStreamListener::shutdown);
         dataStreamListeners.clear();
     }
 
     /**
-     * Get a list of data streams in the handler.
+     * Get a list of data streams listeners in the handler.
      */
-    public List<OSHDataStream> getDatastreams() {
-        List<OSHDataStream> dataStreams = new ArrayList<>();
-        dataStreamListeners.forEach(listener -> dataStreams.add(listener.getDataStream()));
-        return dataStreams;
+    public List<DataStreamListener> getDataStreamListeners() {
+        return new ArrayList<>(dataStreamListeners);
     }
 
     /**
@@ -174,7 +197,7 @@ public abstract class DataStreamHandler implements DataStreamEventListener {
      * Sets the replay speed for the data stream.
      * Only applicable for historical data streams.
      * 1.0 is the default speed, 0.1 is 10 times slower, 10.0 is 10 times faster.
-     * 0 or negative values will result in no data being received.
+     * Zero or negative values will result in no data being received.
      * Calling this method will reconnect to the data stream if it is already connected.
      *
      * @param replaySpeed the replay speed of the request.
