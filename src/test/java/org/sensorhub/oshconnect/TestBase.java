@@ -24,14 +24,13 @@ public class TestBase {
     protected File dbFile;
     protected ConSysApiService service;
     protected IObsSystemDatabase db;
-    protected String apiRootUrl;
     protected OSHConnect oshConnect;
     protected OSHNode node;
 
     @BeforeEach
     void setupTestBase() throws IOException, SensorHubException {
         // Use a temp DB file.
-        dbFile = File.createTempFile("sweapi-db-", ".dat");
+        dbFile = File.createTempFile("swe-api-db-", ".dat");
         dbFile.deleteOnExit();
 
         // Get the instance with in-memory DB
@@ -61,7 +60,7 @@ public class TestBase {
         swaCfg.name = "ConSys API Service";
         swaCfg.autoStart = true;
         service = (ConSysApiService) moduleRegistry.loadModule(swaCfg, TIMEOUT);
-        apiRootUrl = httpServer.getPublicEndpointUrl(swaCfg.endPoint);
+        service.waitForState(ModuleEvent.ModuleState.STARTED, TIMEOUT);
 
         // Create the OSHConnect instance
         oshConnect = new OSHConnect();
