@@ -1,14 +1,12 @@
 package org.sensorhub.oshconnect;
 
 import lombok.Getter;
+import org.sensorhub.api.command.CommandStreamInfo;
 import org.sensorhub.api.data.DataStreamInfo;
 import org.sensorhub.api.system.ISystemWithDesc;
 import org.sensorhub.impl.service.consys.client.ConSysApiClient;
 import org.sensorhub.impl.service.consys.resource.ResourceFormat;
 import org.sensorhub.oshconnect.constants.Service;
-import org.sensorhub.oshconnect.datamodels.ControlStreamResource;
-import org.sensorhub.oshconnect.net.APIRequest;
-import org.sensorhub.oshconnect.net.APIResponse;
 import org.sensorhub.oshconnect.net.ConSysApiClientExtras;
 import org.sensorhub.oshconnect.notification.INotificationControlStream;
 import org.sensorhub.oshconnect.notification.INotificationDataStream;
@@ -62,22 +60,18 @@ public class OSHSystem {
      *
      * @return The list of control streams.
      */
-    public List<OSHControlStream> discoverControlStreams() {
-        APIRequest request = new APIRequest();
-        request.setUrl(Utilities.joinPath(parentNode.getHTTPPrefix(), getControlStreamsEndpoint()));
-        request.setAuthorizationToken(parentNode.getAuthorizationToken());
-
-        APIResponse response = request.get();
-        List<ControlStreamResource> controlStreamResources = response.getItems(ControlStreamResource.class);
-
-        for (ControlStreamResource controlStreamResource : controlStreamResources) {
-            if (controlStreams.stream().noneMatch(cs -> cs.getId().equals(controlStreamResource.getId()))) {
-                OSHControlStream controlStream = new OSHControlStream(this, controlStreamResource);
-                controlStreams.add(controlStream);
-                notifyControlStreamAdded(controlStream);
+    public List<OSHControlStream> discoverControlStreams() throws ExecutionException, InterruptedException {
+        var controlStreamIds = getConnectedSystemsApiClientExtras().getControlStreamIds(getId()).get();
+        for (var id : controlStreamIds) {
+            if (controlStreams.stream().noneMatch(cs -> cs.getId().equals(id))) {
+                var controlStreamResource = getConnectedSystemsApiClient().getControlStreamById(id, ResourceFormat.JSON, true).get();
+                if (controlStreamResource != null) {
+                    OSHControlStream controlStream = new OSHControlStream(this, id, controlStreamResource);
+                    controlStreams.add(controlStream);
+                    notifyControlStreamAdded(controlStream);
+                }
             }
         }
-
         return getControlStreams();
     }
 
@@ -147,6 +141,43 @@ public class OSHSystem {
         if (success) {
             dataStreams.remove(dataStream);
             notifyDataStreamRemoved(dataStream);
+        }
+
+        return success;
+    }
+
+    /**
+     * Create a new control stream associated with the system.
+     *
+     * @param controlStreamResource The control stream properties.
+     * @return The new control stream or null if the creation failed.
+     */
+    public OSHControlStream createControlStream(CommandStreamInfo controlStreamResource) throws ExecutionException, InterruptedException {
+        String id = getConnectedSystemsApiClient().addControlStream(getId(), controlStreamResource).get();
+        if (id == null) return null;
+
+        var newControlStreamResource = getConnectedSystemsApiClient().getControlStreamById(id, ResourceFormat.JSON, true).get();
+        if (newControlStreamResource == null) return null;
+
+        OSHControlStream controlStream = new OSHControlStream(this, id, newControlStreamResource);
+        controlStreams.add(controlStream);
+        notifyControlStreamAdded(controlStream);
+        return controlStream;
+    }
+
+    /**
+     * Delete a control stream associated with the system.
+     *
+     * @param controlStream The control stream to delete.
+     * @return True if the deletion was successful, false otherwise.
+     */
+    public boolean deleteControlStream(OSHControlStream controlStream) throws ExecutionException, InterruptedException {
+        Integer response = getConnectedSystemsApiClientExtras().deleteControlStream(controlStream.getId()).get();
+        boolean success = response != null && response >= 200 && response < 300;
+
+        if (success) {
+            controlStreams.remove(controlStream);
+            notifyControlStreamRemoved(controlStream);
         }
 
         return success;

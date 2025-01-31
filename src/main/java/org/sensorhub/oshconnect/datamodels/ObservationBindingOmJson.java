@@ -74,7 +74,7 @@ public class ObservationBindingOmJson extends ResourceBindingJson<String, Observ
                 if ("id".equals(propName)) {
                     obs.id(reader.nextString());
                 } else if ("datastream@id".equals(propName)) {
-                    obs.datastreamId(reader.nextString());
+                    obs.dataStreamId(reader.nextString());
                 } else if ("phenomenonTime".equals(propName))
                     obs.phenomenonTime(OffsetDateTime.parse(reader.nextString()).toInstant());
                 else if ("resultTime".equals(propName))
@@ -114,8 +114,8 @@ public class ObservationBindingOmJson extends ResourceBindingJson<String, Observ
             writer.name("id").value(observationId);
         }
 
-        if (observationData.getDatastreamId() != null) {
-            writer.name("datastream@id").value(observationData.getDatastreamId());
+        if (observationData.getDataStreamId() != null) {
+            writer.name("datastream@id").value(observationData.getDataStreamId());
         }
 
         writer.name("phenomenonTime").value(observationData.getPhenomenonTime().toString());

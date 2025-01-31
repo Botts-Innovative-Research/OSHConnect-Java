@@ -18,10 +18,10 @@ public class ObservationData {
      */
     protected String id;
     /**
-     * Local ID of the datastream that the observation is part of.
+     * Local ID of the data stream that the observation is part of.
      */
     @SerializedName("datastream@id")
-    protected String datastreamId;
+    protected String dataStreamId;
     /**
      * Local ID of the sampling feature that is the target of the observation.
      */
@@ -43,7 +43,7 @@ public class ObservationData {
     protected Instant resultTime;
     /**
      * Result of the observation.
-     * Must be valid, according to the result schema provided in the datastream metadata.
+     * Must be valid, according to the result schema provided in the data stream metadata.
      */
     protected DataBlock result;
     /**
@@ -70,8 +70,8 @@ public class ObservationData {
             return this;
         }
 
-        public ObservationDataBuilder datastreamId(String datastreamId) {
-            instance.datastreamId = datastreamId;
+        public ObservationDataBuilder dataStreamId(String dataStreamId) {
+            instance.dataStreamId = dataStreamId;
             return this;
         }
 

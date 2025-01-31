@@ -190,7 +190,7 @@ public class OSHNode {
      *
      * @return The list of control streams.
      */
-    public List<OSHControlStream> discoverControlStreams() {
+    public List<OSHControlStream> discoverControlStreams() throws ExecutionException, InterruptedException {
         for (OSHSystem system : systems) {
             system.discoverControlStreams();
         }

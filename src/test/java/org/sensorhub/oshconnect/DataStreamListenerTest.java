@@ -151,7 +151,7 @@ class DataStreamListenerTest extends TestBase {
         assertTrue(called[0]);
         assertNotNull(receivedArgs[0]);
         assertEquals(dataStream, receivedArgs[0].getDataStream());
-        assertEquals(dataStream.getId(), receivedArgs[0].getObservation().getDatastreamId());
+        assertEquals(dataStream.getId(), receivedArgs[0].getObservation().getDataStreamId());
         assertEquals(observationTime, receivedArgs[0].getObservation().getPhenomenonTime());
     }
 

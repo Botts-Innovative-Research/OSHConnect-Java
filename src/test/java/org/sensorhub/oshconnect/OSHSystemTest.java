@@ -7,6 +7,7 @@ import org.sensorhub.oshconnect.notification.INotificationDataStream;
 import java.util.concurrent.ExecutionException;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.sensorhub.oshconnect.tools.ControlStreamTools.newCommandStreamInfo;
 import static org.sensorhub.oshconnect.tools.DataStreamTools.newDataStreamInfo;
 import static org.sensorhub.oshconnect.tools.SystemTools.newSystem;
 
@@ -89,6 +90,20 @@ class OSHSystemTest extends TestBase {
         dataStreams = system.discoverDataStreams();
         assertEquals(1, dataStreams.size());
         assertEquals(id, dataStreams.get(0).getId());
+    }
+
+    @Test
+    void discoverControlStreams() throws ExecutionException, InterruptedException {
+        var controlStreams = system.discoverControlStreams();
+        assertTrue(controlStreams.isEmpty());
+
+        // Create a control stream outside the context of OSHConnect
+        String id = node.getConnectedSystemsApiClient().addControlStream(system.getId(), newCommandStreamInfo()).get();
+        assertNotNull(id);
+
+        controlStreams = system.discoverControlStreams();
+        assertEquals(1, controlStreams.size());
+        assertEquals(id, controlStreams.get(0).getId());
     }
 
     @Test

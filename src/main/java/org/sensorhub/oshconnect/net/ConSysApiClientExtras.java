@@ -5,6 +5,7 @@ import com.google.common.net.HttpHeaders;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import org.sensorhub.api.command.ICommandStreamInfo;
 import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.system.ISystemWithDesc;
 import org.sensorhub.impl.service.consys.obs.DataStreamBindingJson;
@@ -12,6 +13,10 @@ import org.sensorhub.impl.service.consys.obs.ObsHandler;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
 import org.sensorhub.impl.service.consys.resource.ResourceFormat;
 import org.sensorhub.impl.service.consys.system.SystemBindingGeoJson;
+import org.sensorhub.impl.service.consys.task.CommandHandler;
+import org.sensorhub.impl.service.consys.task.CommandStreamBindingJson;
+import org.sensorhub.oshconnect.datamodels.CommandBindingJson;
+import org.sensorhub.oshconnect.datamodels.CommandData;
 import org.sensorhub.oshconnect.datamodels.ObservationBindingOmJson;
 import org.sensorhub.oshconnect.datamodels.ObservationData;
 import org.vast.util.Asserts;
@@ -36,7 +41,9 @@ public class ConSysApiClientExtras {
     static final String JSON_ARRAY_ITEMS = "items";
     static final String SYSTEMS_COLLECTION = "systems";
     static final String DATASTREAMS_COLLECTION = "datastreams";
+    static final String CONTROLS_COLLECTION = "controlstreams";
     static final String OBSERVATIONS_COLLECTION = "observations";
+    static final String COMMANDS_COLLECTION = "commands";
 
     protected HttpClient http;
     protected URI endpoint;
@@ -105,6 +112,30 @@ public class ConSysApiClientExtras {
                 throw new CompletionException(e);
             }
         });
+    }
+
+    /**
+     * Update a data stream.
+     *
+     * @param dataStreamId The ID of the data stream.
+     * @param dataStream   The data stream object.
+     * @return The status code of the operation.
+     */
+    public CompletableFuture<Integer> updateDataStream(String dataStreamId, IDataStreamInfo dataStream) {
+        try {
+            var buffer = new ByteArrayOutputStream();
+            var ctx = new RequestContext(buffer);
+
+            var binding = new DataStreamBindingJson(ctx, null, null, false, Collections.emptyMap());
+            binding.serialize(null, dataStream, false);
+
+            return sendPutRequest(
+                    endpoint.resolve(DATASTREAMS_COLLECTION + "/" + dataStreamId),
+                    ResourceFormat.JSON,
+                    buffer.toByteArray());
+        } catch (IOException e) {
+            throw new IllegalStateException("Error initializing binding", e);
+        }
     }
 
     public CompletableFuture<Integer> deleteDataStream(String dataStreamId) {
@@ -243,6 +274,104 @@ public class ConSysApiClientExtras {
         });
     }
 
+    /**
+     * Get the control stream IDs for a system.
+     *
+     * @param systemID The ID of the system.
+     * @return A list of control stream IDs.
+     */
+    public CompletableFuture<List<String>> getControlStreamIds(String systemID) {
+        return sendGetRequest(endpoint.resolve(SYSTEMS_COLLECTION + "/" + systemID + "/" + CONTROLS_COLLECTION), ResourceFormat.JSON, body -> {
+            try {
+                var ctx = new RequestContext(body);
+
+                JsonObject bodyJson = JsonParser.parseReader(new InputStreamReader(ctx.getInputStream())).getAsJsonObject();
+                JsonArray features = bodyJson.getAsJsonArray(JSON_ARRAY_ITEMS);
+
+                List<String> controlStreams = new ArrayList<>();
+                for (var feature : features) {
+                    // Get the ID
+                    var id = feature.getAsJsonObject().entrySet().stream()
+                            .filter(e -> e.getKey().equals("id"))
+                            .findFirst()
+                            .orElseThrow(() -> new IOException("No id found in feature"));
+                    controlStreams.add(id.getValue().getAsString());
+                }
+
+                return controlStreams;
+            } catch (IOException e) {
+                throw new CompletionException(e);
+            }
+        });
+    }
+
+    /**
+     * Update a control stream.
+     *
+     * @param controlStreamId The ID of the control stream.
+     * @param controlStream   The control stream object.
+     * @return The status code of the operation.
+     */
+    public CompletableFuture<Integer> updateControlStream(String controlStreamId, ICommandStreamInfo controlStream) {
+        try {
+            var buffer = new ByteArrayOutputStream();
+            var ctx = new RequestContext(buffer);
+
+            var binding = new CommandStreamBindingJson(ctx, null, null, false);
+            binding.serialize(null, controlStream, false);
+
+            return sendPutRequest(
+                    endpoint.resolve(CONTROLS_COLLECTION + "/" + controlStreamId),
+                    ResourceFormat.JSON,
+                    buffer.toByteArray());
+        } catch (IOException e) {
+            throw new IllegalStateException("Error initializing binding", e);
+        }
+    }
+
+    /**
+     * Delete a control stream.
+     *
+     * @param controlStreamId The ID of the control stream.
+     * @return The status code of the operation.
+     */
+    public CompletableFuture<Integer> deleteControlStream(String controlStreamId) {
+        return sendDeleteRequest(endpoint.resolve(CONTROLS_COLLECTION + "/" + controlStreamId));
+    }
+
+    /**
+     * Push a command to a control stream.
+     *
+     * @param controlStreamId   The ID of the control stream.
+     * @param commandStreamInfo The control stream object.
+     * @param command           The command to push.
+     * @return The ID of the command if the operation was successful, otherwise null.
+     */
+    public CompletableFuture<String> pushCommand(String controlStreamId, ICommandStreamInfo commandStreamInfo, CommandData command) {
+        try {
+            CommandHandler.CommandHandlerContextData contextData = new CommandHandler.CommandHandlerContextData();
+            contextData.dsInfo = commandStreamInfo;
+
+            var buffer = new ByteArrayOutputStream();
+            var ctx = new RequestContext(buffer);
+            ctx.setData(contextData);
+            ctx.setFormat(ResourceFormat.JSON);
+
+            var binding = new CommandBindingJson(ctx, null, false);
+            binding.serialize(null, command, false);
+
+            String commandString = buffer.toString();
+            System.out.println("Command: " + commandString);
+
+            return sendPostRequest(
+                    endpoint.resolve(CONTROLS_COLLECTION + "/" + controlStreamId + "/" + COMMANDS_COLLECTION),
+                    ctx.getFormat(),
+                    buffer.toByteArray());
+        } catch (IOException e) {
+            throw new IllegalStateException("Error initializing binding", e);
+        }
+    }
+
     protected <T> CompletableFuture<T> sendGetRequest(URI collectionUri, ResourceFormat format, Function<InputStream, T> bodyMapper) {
         var req = HttpRequest.newBuilder()
                 .uri(collectionUri)
@@ -265,23 +394,6 @@ public class ConSysApiClientExtras {
                     else
                         throw new CompletionException("HTTP error " + resp.statusCode(), null);
                 });
-    }
-
-    public CompletableFuture<Integer> updateDataStream(String dataStreamId, IDataStreamInfo dataStream) {
-        try {
-            var buffer = new ByteArrayOutputStream();
-            var ctx = new RequestContext(buffer);
-
-            var binding = new DataStreamBindingJson(ctx, null, null, false, Collections.emptyMap());
-            binding.serialize(null, dataStream, false);
-
-            return sendPutRequest(
-                    endpoint.resolve(DATASTREAMS_COLLECTION + "/" + dataStreamId),
-                    ResourceFormat.JSON,
-                    buffer.toByteArray());
-        } catch (IOException e) {
-            throw new IllegalStateException("Error initializing binding", e);
-        }
     }
 
     protected CompletableFuture<String> sendPostRequest(URI collectionUri, ResourceFormat format, byte[] body) {

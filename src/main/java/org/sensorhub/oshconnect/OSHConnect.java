@@ -112,8 +112,12 @@ public class OSHConnect {
      *
      * @return A list of all control streams discovered by OSHConnect.
      */
-    public List<OSHControlStream> discoverControlStreams() {
-        nodeManager.getNodes().forEach(OSHNode::discoverControlStreams);
+    public List<OSHControlStream> discoverControlStreams() throws ExecutionException, InterruptedException {
+        for (OSHNode node : nodeManager.getNodes()) {
+            for (OSHSystem system : node.getSystems()) {
+                system.discoverControlStreams();
+            }
+        }
         return getControlStreams();
     }
 
