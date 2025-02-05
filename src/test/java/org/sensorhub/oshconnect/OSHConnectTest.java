@@ -29,7 +29,7 @@ class OSHConnectTest {
 
     @Test
     void shutdown() {
-        DataStreamManager dataStreamManager = oshConnect.getDataStreamManager();
+        StreamManager dataStreamManager = oshConnect.getDataStreamManager();
         dataStreamManager.createDataStreamHandler(args -> {
             // Do nothing
         });

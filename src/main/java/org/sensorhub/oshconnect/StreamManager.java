@@ -1,7 +1,7 @@
 package org.sensorhub.oshconnect;
 
-import org.sensorhub.oshconnect.net.websocket.DataStreamEventArgs;
-import org.sensorhub.oshconnect.net.websocket.DataStreamHandler;
+import org.sensorhub.oshconnect.net.websocket.StreamEventArgs;
+import org.sensorhub.oshconnect.net.websocket.StreamHandler;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -12,29 +12,29 @@ import java.util.function.Consumer;
 /**
  * Manages data stream handlers and their associated data streams.
  */
-public class DataStreamManager {
+public class StreamManager {
     /**
      * Data stream handlers added to OSHConnect.
      */
-    private final Set<DataStreamHandler> dataStreamHandlers = new HashSet<>();
+    private final Set<StreamHandler> dataStreamHandlers = new HashSet<>();
 
     /**
      * Package-private constructor, to be used by OSHConnect.
      */
-    DataStreamManager() {
+    StreamManager() {
     }
 
     /**
      * Create a new data stream handler and add it to OSHConnect.
-     * No need to call {@link DataStreamManager#addDataStreamHandler(DataStreamHandler)} after calling this method.
+     * No need to call {@link StreamManager#addDataStreamHandler(StreamHandler)} after calling this method.
      *
      * @param onStreamUpdate The function to call when a data stream is updated.
      * @return The data stream handler.
      */
-    public DataStreamHandler createDataStreamHandler(Consumer<DataStreamEventArgs> onStreamUpdate) {
-        DataStreamHandler handler = new DataStreamHandler() {
+    public StreamHandler createDataStreamHandler(Consumer<StreamEventArgs> onStreamUpdate) {
+        StreamHandler handler = new StreamHandler() {
             @Override
-            public void onStreamUpdate(DataStreamEventArgs args) {
+            public void onStreamUpdate(StreamEventArgs args) {
                 onStreamUpdate.accept(args);
             }
         };
@@ -48,7 +48,7 @@ public class DataStreamManager {
      *
      * @param handler The data stream handler to add.
      */
-    public void addDataStreamHandler(DataStreamHandler handler) {
+    public void addDataStreamHandler(StreamHandler handler) {
         dataStreamHandlers.add(handler);
     }
 
@@ -57,7 +57,7 @@ public class DataStreamManager {
      *
      * @return A list of data stream handlers.
      */
-    public List<DataStreamHandler> getDataStreamHandlers() {
+    public List<StreamHandler> getDataStreamHandlers() {
         return new ArrayList<>(dataStreamHandlers);
     }
 
@@ -65,7 +65,7 @@ public class DataStreamManager {
      * Shutdown the data stream handler and its associated data streams,
      * and remove it from OSHConnect.
      */
-    public void shutdownDataStreamHandler(DataStreamHandler handler) {
+    public void shutdownDataStreamHandler(StreamHandler handler) {
         handler.shutdown();
         dataStreamHandlers.remove(handler);
     }
@@ -75,7 +75,7 @@ public class DataStreamManager {
      * and remove them from OSHConnect.
      */
     public void shutdownDataStreamHandlers() {
-        dataStreamHandlers.forEach(DataStreamHandler::shutdown);
+        dataStreamHandlers.forEach(StreamHandler::shutdown);
         dataStreamHandlers.clear();
     }
 

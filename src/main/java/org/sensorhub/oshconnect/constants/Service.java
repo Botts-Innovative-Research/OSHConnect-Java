@@ -14,7 +14,8 @@ public enum Service {
     SYSTEMS("systems"),
     DATASTREAMS("datastreams"),
     CONTROLSTREAMS("controlstreams"),
-    OBSERVATIONS("observations");
+    OBSERVATIONS("observations"),
+    COMMANDS("commands");
 
     /**
      * String representing the endpoint where the service is supported on the server.

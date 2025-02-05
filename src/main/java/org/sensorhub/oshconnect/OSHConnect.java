@@ -25,7 +25,11 @@ public class OSHConnect {
     /**
      * The data stream manager, used to create and manage connections to data streams.
      */
-    private final DataStreamManager dataStreamManager;
+    private final StreamManager dataStreamManager;
+    /**
+     * The control stream manager, used to create and manage connections to control streams.
+     */
+    private final StreamManager controlStreamManager;
     /**
      * The notification manager, used to notify listeners of changes to nodes, systems, and data streams.
      */
@@ -50,7 +54,8 @@ public class OSHConnect {
      */
     public OSHConnect(String name) {
         this.name = name;
-        this.dataStreamManager = new DataStreamManager();
+        this.dataStreamManager = new StreamManager();
+        this.controlStreamManager = new StreamManager();
         this.notificationManager = new NotificationManager();
         this.nodeManager = new NodeManager(notificationManager);
     }

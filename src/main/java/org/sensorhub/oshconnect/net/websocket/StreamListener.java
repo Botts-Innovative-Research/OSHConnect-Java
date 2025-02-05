@@ -2,7 +2,7 @@ package org.sensorhub.oshconnect.net.websocket;
 
 import lombok.Getter;
 import org.json.JSONObject;
-import org.sensorhub.oshconnect.OSHDataStream;
+import org.sensorhub.oshconnect.OSHStream;
 import org.sensorhub.oshconnect.net.RequestFormat;
 import org.sensorhub.oshconnect.util.QueryStringBuilder;
 import org.vast.util.TimeExtent;
@@ -17,17 +17,17 @@ import java.util.regex.Pattern;
 
 /**
  * Listener for a single data stream.
- * Override the {@link #onStreamUpdate(DataStreamEventArgs)} method to handle the data received from the data stream.
- * To listen to multiple data streams, use a {@link DataStreamHandler}.
+ * Override the {@link #onStreamUpdate(StreamEventArgs)} method to handle the data received from the data stream.
+ * To listen to multiple data streams, use a {@link StreamHandler}.
  */
-public abstract class DataStreamListener implements DataStreamEventListener {
+public abstract class StreamListener implements StreamEventListener {
     private static final String DATE_REGEX_TEXT = "\\d{4}-\\d{2}-\\d{2}T\\d{2}:";
     private static final String DATE_REGEX_XML = "<[^>]+>(\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d+Z)</[^>]+>";
     /**
      * The data stream being listened to.
      */
     @Getter
-    private final OSHDataStream dataStream;
+    private final OSHStream dataStream;
     private final List<StatusListener> statusListeners = new ArrayList<>();
     private boolean isShutdown = false;
     /**
@@ -62,13 +62,13 @@ public abstract class DataStreamListener implements DataStreamEventListener {
      *
      * @param dataStream the data stream to listen to.
      */
-    protected DataStreamListener(OSHDataStream dataStream) {
+    protected StreamListener(OSHStream dataStream) {
         this.dataStream = dataStream;
     }
 
     /**
      * Called when the data stream receives an update.
-     * Parses the data and calls {@link #onStreamUpdate(DataStreamEventArgs)}.
+     * Parses the data and calls {@link #onStreamUpdate(StreamEventArgs)}.
      *
      * @param data the data received from the data stream.
      */
@@ -76,7 +76,7 @@ public abstract class DataStreamListener implements DataStreamEventListener {
         RequestFormat format = determineRequestFormat(data);
         long timestamp = determineTimestamp(format, data);
 
-        onStreamUpdate(new DataStreamEventArgs(timestamp, data, format, dataStream));
+        onStreamUpdate(new StreamEventArgs(timestamp, data, format, dataStream));
     }
 
     /**
@@ -86,7 +86,7 @@ public abstract class DataStreamListener implements DataStreamEventListener {
      * @param args the arguments of the event.
      */
     @Override
-    public void onStreamUpdate(DataStreamEventArgs args) {
+    public void onStreamUpdate(StreamEventArgs args) {
         // Default implementation does nothing
     }
 
@@ -257,7 +257,7 @@ public abstract class DataStreamListener implements DataStreamEventListener {
             queryString.addParameter("replaySpeed", replaySpeed);
         }
 
-        return dataStream.getObservationsEndpoint() + queryString;
+        return dataStream.getEndpoint() + queryString;
     }
 
     public StreamStatus getStatus() {

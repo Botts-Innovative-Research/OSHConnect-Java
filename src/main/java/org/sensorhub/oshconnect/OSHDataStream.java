@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 @Getter
-public class OSHDataStream {
+public class OSHDataStream implements OSHStream {
     private final OSHSystem parentSystem;
     private final String id;
     private IDataStreamInfo dataStreamResource;
@@ -29,10 +29,8 @@ public class OSHDataStream {
 
     /**
      * Returns the endpoint for the observations of this data stream.
-     *
-     * @return the endpoint for the observations of this data stream.
      */
-    public String getObservationsEndpoint() {
+    public String getEndpoint() {
         return Utilities.joinPath(parentSystem.getParentNode().getApiEndpoint(), Service.DATASTREAMS.getEndpoint(), getId(), Service.OBSERVATIONS.getEndpoint());
     }
 

@@ -4,13 +4,16 @@ import lombok.Getter;
 import org.sensorhub.api.command.ICommandStreamInfo;
 import org.sensorhub.impl.service.consys.client.ConSysApiClient;
 import org.sensorhub.impl.service.consys.resource.ResourceFormat;
+import org.sensorhub.oshconnect.constants.Service;
 import org.sensorhub.oshconnect.datamodels.CommandData;
 import org.sensorhub.oshconnect.net.ConSysApiClientExtras;
+import org.sensorhub.oshconnect.util.Utilities;
 
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 @Getter
-public class OSHControlStream {
+public class OSHControlStream implements OSHStream {
     private final OSHSystem parentSystem;
     private final String id;
     private ICommandStreamInfo controlStreamResource;
@@ -19,6 +22,32 @@ public class OSHControlStream {
         this.parentSystem = parentSystem;
         this.id = id;
         this.controlStreamResource = controlStreamResource;
+    }
+
+    /**
+     * Returns the endpoint for the commands of this control stream.
+     */
+    public String getEndpoint() {
+        return Utilities.joinPath(parentSystem.getParentNode().getApiEndpoint(), Service.CONTROLSTREAMS.getEndpoint(), getId(), Service.COMMANDS.getEndpoint());
+    }
+
+    /**
+     * Returns the command with the specified ID.
+     *
+     * @param commandId The ID of the command to get.
+     * @return The command with the specified ID.
+     */
+    public CommandData getCommand(String commandId) throws ExecutionException, InterruptedException {
+        return getConnectedSystemsApiClientExtras().getCommand(id, commandId, controlStreamResource).get();
+    }
+
+    /**
+     * Returns the latest commands of this control stream.
+     *
+     * @return A list of CommandData objects.
+     */
+    public List<CommandData> getCommands() throws ExecutionException, InterruptedException {
+        return getConnectedSystemsApiClientExtras().getCommands(id, controlStreamResource).get();
     }
 
     /**
@@ -63,7 +92,7 @@ public class OSHControlStream {
     public String pushCommand(CommandData command) throws ExecutionException, InterruptedException {
         return getConnectedSystemsApiClientExtras().pushCommand(id, controlStreamResource, command).get();
     }
-    
+
     public ConSysApiClient getConnectedSystemsApiClient() {
         return parentSystem.getConnectedSystemsApiClient();
     }

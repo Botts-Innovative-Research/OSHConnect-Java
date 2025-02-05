@@ -3,8 +3,8 @@ package org.sensorhub.oshconnect;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.sensorhub.oshconnect.datamodels.ObservationData;
-import org.sensorhub.oshconnect.net.websocket.DataStreamEventArgs;
 import org.sensorhub.oshconnect.net.websocket.StatusListener;
+import org.sensorhub.oshconnect.net.websocket.StreamEventArgs;
 import org.sensorhub.oshconnect.net.websocket.StreamStatus;
 import org.vast.util.TimeExtent;
 
@@ -19,11 +19,11 @@ import static org.sensorhub.oshconnect.tools.ObservationTools.newDataBlockWithDa
 import static org.sensorhub.oshconnect.tools.ObservationTools.newObservationData;
 import static org.sensorhub.oshconnect.tools.SystemTools.newSystem;
 
-class DataStreamListenerTest extends TestBase {
+class StreamListenerTest extends TestBase {
     OSHSystem system;
     OSHDataStream dataStream;
-    DataStreamManager dataStreamManager;
-    Consumer<DataStreamEventArgs> emptyEvent = args -> {
+    StreamManager dataStreamManager;
+    Consumer<StreamEventArgs> emptyEvent = args -> {
         // Do nothing
     };
 
@@ -129,7 +129,7 @@ class DataStreamListenerTest extends TestBase {
     @Test
     void dataStreamListener_LiveData() throws InterruptedException, ExecutionException {
         boolean[] called = {false};
-        DataStreamEventArgs[] receivedArgs = new DataStreamEventArgs[1];
+        StreamEventArgs[] receivedArgs = new StreamEventArgs[1];
         var handler = dataStreamManager.createDataStreamHandler(args -> {
             // This event will be called when the observation is received.
             called[0] = true;
@@ -150,7 +150,7 @@ class DataStreamListenerTest extends TestBase {
         await().until(() -> called[0]);
         assertTrue(called[0]);
         assertNotNull(receivedArgs[0]);
-        assertEquals(dataStream, receivedArgs[0].getDataStream());
+        assertEquals(dataStream, receivedArgs[0].getStream());
         assertEquals(dataStream.getId(), receivedArgs[0].getObservation().getDataStreamId());
         assertEquals(observationTime, receivedArgs[0].getObservation().getPhenomenonTime());
     }
@@ -168,7 +168,7 @@ class DataStreamListenerTest extends TestBase {
         }
 
         boolean[] called = {false};
-        DataStreamEventArgs[] receivedArgs = new DataStreamEventArgs[1];
+        StreamEventArgs[] receivedArgs = new StreamEventArgs[1];
         var handler = dataStreamManager.createDataStreamHandler(args -> {
             // This event will be called when the observation is received.
             called[0] = true;

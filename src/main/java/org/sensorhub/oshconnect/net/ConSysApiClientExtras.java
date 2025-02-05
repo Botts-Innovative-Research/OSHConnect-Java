@@ -360,9 +360,6 @@ public class ConSysApiClientExtras {
             var binding = new CommandBindingJson(ctx, null, false);
             binding.serialize(null, command, false);
 
-            String commandString = buffer.toString();
-            System.out.println("Command: " + commandString);
-
             return sendPostRequest(
                     endpoint.resolve(CONTROLS_COLLECTION + "/" + controlStreamId + "/" + COMMANDS_COLLECTION),
                     ctx.getFormat(),
@@ -370,6 +367,86 @@ public class ConSysApiClientExtras {
         } catch (IOException e) {
             throw new IllegalStateException("Error initializing binding", e);
         }
+    }
+
+    /**
+     * Get a command by ID.
+     *
+     * @param controlStreamId   The ID of the control stream.
+     * @param commandId         The ID of the command.
+     * @param commandStreamInfo The control stream object.
+     * @return The command.
+     */
+    public CompletableFuture<CommandData> getCommand(String controlStreamId, String commandId, ICommandStreamInfo commandStreamInfo) {
+        return sendGetRequest(endpoint.resolve(CONTROLS_COLLECTION + "/" + controlStreamId + "/" + COMMANDS_COLLECTION + "/" + commandId), ResourceFormat.OM_JSON, body -> {
+            try {
+                CommandHandler.CommandHandlerContextData contextData = new CommandHandler.CommandHandlerContextData();
+                contextData.dsInfo = commandStreamInfo;
+
+                var ctx = new RequestContext(body);
+                ctx.setData(contextData);
+                ctx.setFormat(ResourceFormat.OM_JSON);
+
+                var binding = new CommandBindingJson(ctx, null, true);
+                return binding.deserialize();
+
+            } catch (IOException e) {
+                throw new CompletionException(e);
+            }
+        });
+    }
+
+    /**
+     * Get the latest set of commands for a control stream.
+     *
+     * @param controlStreamId   The ID of the control stream.
+     * @param commandStreamInfo The control stream object.
+     * @return A list of commands.
+     */
+    public CompletableFuture<List<CommandData>> getCommands(String controlStreamId, ICommandStreamInfo commandStreamInfo) {
+        return getCommands(controlStreamId, commandStreamInfo, "");
+    }
+
+    /**
+     * Get a set of commands for a control stream with a query string.
+     *
+     * @param controlStreamId   The ID of the control stream.
+     * @param commandStreamInfo The control stream object.
+     * @param queryString       The query string to include in the request.
+     * @return A list of commands.
+     */
+    public CompletableFuture<List<CommandData>> getCommands(String controlStreamId, ICommandStreamInfo commandStreamInfo, String queryString) {
+        if (queryString == null)
+            queryString = "";
+        if (!queryString.isEmpty() && !queryString.startsWith("?"))
+            queryString = "?" + queryString;
+
+        String url = CONTROLS_COLLECTION + "/" + controlStreamId + "/" + COMMANDS_COLLECTION + queryString;
+
+        return sendGetRequest(endpoint.resolve(url), ResourceFormat.JSON, body -> {
+            try {
+                CommandHandler.CommandHandlerContextData contextData = new CommandHandler.CommandHandlerContextData();
+                contextData.dsInfo = commandStreamInfo;
+
+                var ctx = new RequestContext(body);
+                JsonObject bodyJson = JsonParser.parseReader(new InputStreamReader(ctx.getInputStream())).getAsJsonObject();
+                JsonArray features = bodyJson.getAsJsonArray(JSON_ARRAY_ITEMS);
+
+                List<CommandData> observations = new ArrayList<>();
+                for (var feature : features) {
+                    var ctx2 = new RequestContext(new ByteArrayInputStream(feature.toString().getBytes()));
+                    ctx2.setData(contextData);
+                    ctx2.setFormat(ResourceFormat.OM_JSON);
+
+                    var binding = new CommandBindingJson(ctx2, null, true);
+                    observations.add(binding.deserialize());
+                }
+
+                return observations;
+            } catch (IOException e) {
+                throw new CompletionException(e);
+            }
+        });
     }
 
     protected <T> CompletableFuture<T> sendGetRequest(URI collectionUri, ResourceFormat format, Function<InputStream, T> bodyMapper) {
@@ -411,8 +488,11 @@ public class ConSysApiClientExtras {
                                 .firstValue(HttpHeaders.LOCATION)
                                 .orElseThrow(() -> new IllegalStateException("Missing Location header in response"));
                         return location.substring(location.lastIndexOf('/') + 1);
-                    } else
+                    } else if (resp.statusCode() == 200) {
+                        return resp.body();
+                    } else {
                         throw new CompletionException(resp.body(), null);
+                    }
                 });
     }
 

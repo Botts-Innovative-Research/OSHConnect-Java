@@ -2,17 +2,17 @@ package org.sensorhub.oshconnect;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.sensorhub.oshconnect.net.websocket.DataStreamEventArgs;
-import org.sensorhub.oshconnect.net.websocket.DataStreamHandler;
+import org.sensorhub.oshconnect.net.websocket.StreamEventArgs;
+import org.sensorhub.oshconnect.net.websocket.StreamHandler;
 
 import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-class DataStreamManagerTest {
-    DataStreamManager dataStreamManager;
-    Consumer<DataStreamEventArgs> emptyEvent = args -> {
+class StreamManagerTest {
+    StreamManager dataStreamManager;
+    Consumer<StreamEventArgs> emptyEvent = args -> {
         // Do nothing
     };
 
@@ -30,9 +30,9 @@ class DataStreamManagerTest {
 
     @Test
     void addDataStreamHandler() {
-        DataStreamHandler handler = new DataStreamHandler() {
+        StreamHandler handler = new StreamHandler() {
             @Override
-            public void onStreamUpdate(DataStreamEventArgs args) {
+            public void onStreamUpdate(StreamEventArgs args) {
                 // Do nothing
             }
         };
@@ -43,7 +43,7 @@ class DataStreamManagerTest {
 
     @Test
     void shutdownDataStreamHandler() {
-        DataStreamHandler handler = dataStreamManager.createDataStreamHandler(emptyEvent);
+        StreamHandler handler = dataStreamManager.createDataStreamHandler(emptyEvent);
         assertEquals(1, dataStreamManager.getDataStreamHandlers().size());
         dataStreamManager.shutdownDataStreamHandler(handler);
         assertEquals(0, dataStreamManager.getDataStreamHandlers().size());

@@ -1,8 +1,8 @@
 package org.sensorhub.oshconnect.net.websocket;
 
 import lombok.Getter;
-import org.sensorhub.oshconnect.DataStreamManager;
-import org.sensorhub.oshconnect.OSHDataStream;
+import org.sensorhub.oshconnect.OSHStream;
+import org.sensorhub.oshconnect.StreamManager;
 import org.sensorhub.oshconnect.net.RequestFormat;
 import org.sensorhub.oshconnect.time.TimeSynchronizer;
 import org.vast.util.TimeExtent;
@@ -13,14 +13,14 @@ import java.util.function.Consumer;
 
 /**
  * A handler for multiple data streams.
- * Override the {@link #onStreamUpdate(DataStreamEventArgs)} method to receive data from the data streams.
- * Use {@link DataStreamManager#createDataStreamHandler(Consumer)} to create a new handler associated with an OSHConnect instance,
+ * Override the {@link #onStreamUpdate(StreamEventArgs)} method to receive data from the data streams.
+ * Use {@link StreamManager#createDataStreamHandler(Consumer)} to create a new handler associated with an OSHConnect instance,
  * which will allow OSHConnect to manage the handler and shut it down when the OSHConnect instance is shut down.
  */
-public abstract class DataStreamHandler implements DataStreamEventListener {
-    private final List<DataStreamListener> dataStreamListeners = new ArrayList<>();
+public abstract class StreamHandler implements StreamEventListener {
+    private final List<StreamListener> dataStreamListeners = new ArrayList<>();
     @Getter
-    private final TimeSynchronizer<DataStreamEventArgs> timeSynchronizer;
+    private final TimeSynchronizer<StreamEventArgs> timeSynchronizer;
 
     /**
      * The format of the request.
@@ -51,11 +51,11 @@ public abstract class DataStreamHandler implements DataStreamEventListener {
     /**
      * Creates a new data stream handler.
      * To ensure this handler is associated with an OSHConnect instance,
-     * use {@link DataStreamManager#createDataStreamHandler(Consumer)} to create a new handler.
+     * use {@link StreamManager#createDataStreamHandler(Consumer)} to create a new handler.
      * Doing so will allow OSHConnect to manage the handler,
      * and shut it down when the OSHConnect instance is shut down.
      */
-    protected DataStreamHandler() {
+    protected StreamHandler() {
         this.timeSynchronizer = new TimeSynchronizer<>(this::onStreamUpdate);
     }
 
@@ -67,7 +67,7 @@ public abstract class DataStreamHandler implements DataStreamEventListener {
             throw new IllegalStateException("Handler has been shut down.");
         }
 
-        for (DataStreamListener listener : dataStreamListeners) {
+        for (StreamListener listener : dataStreamListeners) {
             if (listener.getStatus() != StreamStatus.SHUTDOWN) {
                 listener.connect();
             }
@@ -79,7 +79,7 @@ public abstract class DataStreamHandler implements DataStreamEventListener {
      * Disconnects from all data streams.
      */
     public void disconnect() {
-        dataStreamListeners.forEach(DataStreamListener::disconnect);
+        dataStreamListeners.forEach(StreamListener::disconnect);
         status = StreamStatus.DISCONNECTED;
     }
 
@@ -100,20 +100,20 @@ public abstract class DataStreamHandler implements DataStreamEventListener {
      *
      * @param dataStream the data stream to add.
      */
-    public DataStreamListener addDataStreamListener(OSHDataStream dataStream) {
+    public StreamListener addDataStreamListener(OSHStream dataStream) {
         if (dataStream == null) {
             throw new IllegalArgumentException("Data stream cannot be null.");
         }
 
-        for (DataStreamListener listener : dataStreamListeners) {
+        for (StreamListener listener : dataStreamListeners) {
             if (listener.getDataStream().equals(dataStream)) {
                 return listener;
             }
         }
 
-        DataStreamListener listener = new DataStreamListener(dataStream) {
+        StreamListener listener = new StreamListener(dataStream) {
             @Override
-            public void onStreamUpdate(DataStreamEventArgs args) {
+            public void onStreamUpdate(StreamEventArgs args) {
                 timeSynchronizer.addEvent(args.getTimestamp(), args);
             }
         };
@@ -136,10 +136,10 @@ public abstract class DataStreamHandler implements DataStreamEventListener {
      * @param dataStream the data stream to remove.
      * @return true if the DataStreamListener was shut down and removed, false if the data stream was not in the handler.
      */
-    public boolean shutdownDataStreamListener(OSHDataStream dataStream) {
+    public boolean shutdownDataStreamListener(OSHStream dataStream) {
         if (dataStream == null) return false;
 
-        DataStreamListener listener = dataStreamListeners.stream()
+        StreamListener listener = dataStreamListeners.stream()
                 .filter(l -> l.getDataStream().equals(dataStream))
                 .findFirst()
                 .orElse(null);
@@ -153,7 +153,7 @@ public abstract class DataStreamHandler implements DataStreamEventListener {
      * @param listener the DataStreamListener to remove.
      * @return true if the DataStreamListener was removed, false if the DataStreamListener was not in the handler.
      */
-    public boolean shutdownDataStreamListener(DataStreamListener listener) {
+    public boolean shutdownDataStreamListener(StreamListener listener) {
         if (listener == null) return false;
 
         boolean removed = dataStreamListeners.remove(listener);
@@ -167,14 +167,14 @@ public abstract class DataStreamHandler implements DataStreamEventListener {
      * Shuts down all data streams and removes them from the handler.
      */
     public void shutdownAllDataStreamListeners() {
-        dataStreamListeners.forEach(DataStreamListener::shutdown);
+        dataStreamListeners.forEach(StreamListener::shutdown);
         dataStreamListeners.clear();
     }
 
     /**
      * Get a list of data streams listeners in the handler.
      */
-    public List<DataStreamListener> getDataStreamListeners() {
+    public List<StreamListener> getDataStreamListeners() {
         return new ArrayList<>(dataStreamListeners);
     }
 
@@ -188,7 +188,7 @@ public abstract class DataStreamHandler implements DataStreamEventListener {
      */
     public void setRequestFormat(RequestFormat requestFormat) {
         this.requestFormat = requestFormat;
-        for (DataStreamListener listener : dataStreamListeners) {
+        for (StreamListener listener : dataStreamListeners) {
             listener.setRequestFormat(requestFormat);
         }
     }
@@ -204,7 +204,7 @@ public abstract class DataStreamHandler implements DataStreamEventListener {
      */
     public void setReplaySpeed(double replaySpeed) {
         this.replaySpeed = replaySpeed;
-        for (DataStreamListener listener : dataStreamListeners) {
+        for (StreamListener listener : dataStreamListeners) {
             listener.setReplaySpeed(replaySpeed);
         }
     }
@@ -219,7 +219,7 @@ public abstract class DataStreamHandler implements DataStreamEventListener {
      */
     public void setTimeExtent(TimeExtent timeExtent) {
         this.timeExtent = timeExtent;
-        for (DataStreamListener listener : dataStreamListeners) {
+        for (StreamListener listener : dataStreamListeners) {
             listener.setTimeExtent(timeExtent);
         }
     }

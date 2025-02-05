@@ -19,14 +19,14 @@ import java.util.List;
  * Class representing an active connection to a WebSocket.
  */
 public class WebSocketConnection implements WebSocketListener {
-    private final DataStreamListener streamListener;
+    private final StreamListener streamListener;
     private final String request;
     private final WebSocketClient client = new WebSocketClient();
     private final List<StatusListener> statusListeners = new ArrayList<>();
     @Getter
     private StreamStatus status = StreamStatus.DISCONNECTED;
 
-    public WebSocketConnection(DataStreamListener streamListener, String request) {
+    public WebSocketConnection(StreamListener streamListener, String request) {
         this.streamListener = streamListener;
         this.request = request;
     }

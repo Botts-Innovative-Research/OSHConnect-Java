@@ -6,6 +6,7 @@ import org.sensorhub.impl.service.consys.obs.ObsHandler;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
 import org.sensorhub.impl.service.consys.resource.ResourceFormat;
 import org.sensorhub.oshconnect.OSHDataStream;
+import org.sensorhub.oshconnect.OSHStream;
 import org.sensorhub.oshconnect.datamodels.ObservationBindingOmJson;
 import org.sensorhub.oshconnect.datamodels.ObservationData;
 import org.sensorhub.oshconnect.net.RequestFormat;
@@ -18,11 +19,11 @@ import java.io.IOException;
  */
 @Getter
 @RequiredArgsConstructor
-public class DataStreamEventArgs {
-    private final long timestamp;
-    private final byte[] data;
-    private final RequestFormat format;
-    private final OSHDataStream dataStream;
+public class StreamEventArgs {
+    protected final long timestamp;
+    protected final byte[] data;
+    protected final RequestFormat format;
+    protected final OSHStream stream;
 
     /**
      * Returns the data as an ObservationData object or null if the data is not in JSON format.
@@ -31,6 +32,7 @@ public class DataStreamEventArgs {
      */
     public ObservationData getObservation() {
         if (format != RequestFormat.JSON) return null;
+        OSHDataStream dataStream = (OSHDataStream) this.stream;
 
         ObsHandler.ObsHandlerContextData contextData = new ObsHandler.ObsHandlerContextData();
         contextData.dsInfo = dataStream.getDataStreamResource();

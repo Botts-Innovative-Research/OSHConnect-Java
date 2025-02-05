@@ -3,8 +3,8 @@ package org.sensorhub.oshconnect;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.sensorhub.oshconnect.net.RequestFormat;
-import org.sensorhub.oshconnect.net.websocket.DataStreamEventArgs;
-import org.sensorhub.oshconnect.net.websocket.DataStreamHandler;
+import org.sensorhub.oshconnect.net.websocket.StreamEventArgs;
+import org.sensorhub.oshconnect.net.websocket.StreamHandler;
 import org.sensorhub.oshconnect.net.websocket.StreamStatus;
 import org.vast.util.TimeExtent;
 
@@ -15,11 +15,11 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.sensorhub.oshconnect.tools.DataStreamTools.newDataStreamInfo;
 import static org.sensorhub.oshconnect.tools.SystemTools.newSystem;
 
-class DataStreamHandlerTest extends TestBase {
+class StreamHandlerTest extends TestBase {
     OSHSystem system;
     OSHDataStream dataStream;
-    DataStreamManager dataStreamManager;
-    DataStreamHandler dataStreamHandler;
+    StreamManager dataStreamManager;
+    StreamHandler dataStreamHandler;
 
     @BeforeEach
     void setup() throws ExecutionException, InterruptedException {
@@ -172,9 +172,9 @@ class DataStreamHandlerTest extends TestBase {
         var dataStreamListener = dataStreamHandler.addDataStreamListener(dataStream);
         assertNotNull(dataStreamListener);
 
-        var dataStreamHandler2 = new DataStreamHandler() {
+        var dataStreamHandler2 = new StreamHandler() {
             @Override
-            public void onStreamUpdate(DataStreamEventArgs args) {
+            public void onStreamUpdate(StreamEventArgs args) {
                 // Do nothing
             }
         };

@@ -3,6 +3,6 @@ package org.sensorhub.oshconnect.net.websocket;
 /**
  * Interface for dataStream event listeners.
  */
-public interface DataStreamEventListener {
-    void onStreamUpdate(DataStreamEventArgs args);
+public interface StreamEventListener {
+    void onStreamUpdate(StreamEventArgs args);
 }

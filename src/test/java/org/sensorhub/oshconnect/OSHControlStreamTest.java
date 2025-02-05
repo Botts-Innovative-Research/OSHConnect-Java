@@ -3,9 +3,11 @@ package org.sensorhub.oshconnect;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.sensorhub.oshconnect.datamodels.CommandData;
+import org.sensorhub.oshconnect.net.websocket.StreamStatus;
 
 import java.util.concurrent.ExecutionException;
 
+import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.sensorhub.oshconnect.tools.CommandTools.newCommandData;
 import static org.sensorhub.oshconnect.tools.CommandTools.newDataBlockWithData;
@@ -100,11 +102,23 @@ class OSHControlStreamTest extends TestBase {
         assertTrue(controlStreams.isEmpty());
     }
 
-    // TODO: Not working; 500 error
     @Test
     void sendCommand() throws ExecutionException, InterruptedException {
+        var handler = oshConnect.getControlStreamManager().createDataStreamHandler(args -> {
+        });
+        var dataStreamListener = handler.addDataStreamListener(controlStream);
+        assertNotNull(dataStreamListener);
+        assertEquals(controlStream, dataStreamListener.getDataStream());
+        assertEquals(1, handler.getDataStreamListeners().size());
+
+        handler.connect();
+        await().until(() -> dataStreamListener.getStatus() == StreamStatus.CONNECTED);
+
         CommandData commandData = newCommandData(newDataBlockWithData());
         String commandID = controlStream.pushCommand(commandData);
         assertNotNull(commandID);
+
+        var commands = controlStream.getCommands();
+        assertFalse(commands.isEmpty());
     }
 }

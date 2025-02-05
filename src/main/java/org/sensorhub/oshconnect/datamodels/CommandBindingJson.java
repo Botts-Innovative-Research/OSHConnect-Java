@@ -60,8 +60,7 @@ public class CommandBindingJson extends ResourceBindingJson<String, CommandData>
 
         if (forReading) {
             this.paramsReader = getSweCommonParser(contextData.dsInfo, reader);
-            var user = ctx.getSecurityHandler().getCurrentUser();
-            this.userID = user != null ? user.getId() : "api";
+            this.userID = "api";
             timeStampIndexer = SWEDataUtils.getTimeStampIndexer(contextData.dsInfo.getRecordStructure());
         } else {
             this.paramsWriters = new HashMap<>();
