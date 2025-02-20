@@ -2,7 +2,9 @@ plugins {
     id 'java'
 }
 
-apply from: gradle.oshCoreDir + '/common.gradle'
+var oshCoreDir = "$projectDir/submodules/osh-core"
+
+apply from: oshCoreDir + '/common.gradle'
 group = 'org.sensorhub'
 version = '1.0'
 
@@ -23,7 +25,8 @@ dependencies {
     implementation 'org.sensorhub:sensorhub-core:' + oshCoreVersion
     implementation 'org.sensorhub:sensorhub-datastore-h2:' + oshCoreVersion
     implementation 'org.sensorhub:sensorhub-service-consys:' + oshCoreVersion
-    implementation project(':swe-common-om')
+
+    implementation 'org.vast.opengis:swe-common-om:' + oshCoreVersion
 
     compileOnly 'org.projectlombok:lombok:1.18.34'
     annotationProcessor 'org.projectlombok:lombok:1.18.34'
