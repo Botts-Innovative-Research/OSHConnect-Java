@@ -48,6 +48,13 @@ subprojects {
     ext.pom = {}
 }
 
+jar {
+    enabled = true
+    archiveBaseName.set('OSHConnect-Java')
+    archiveVersion.set(version)
+    destinationDirectory.set(file("$buildDir/libs"))
+}
+
 test {
     useJUnitPlatform()
 }
