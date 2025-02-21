@@ -1,11 +1,8 @@
 rootProject.name = 'OSHConnect-Java'
 def includeDir = "$rootDir/submodules"
 
-gradle.ext.oshCoreDir = "$includeDir/osh-core"
-includeBuild gradle.oshCoreDir
+var oshCoreDir = "$includeDir/osh-core"
 
-include 'swe-common-core'
-include 'swe-common-om'
+gradle.ext.oshCoreDir = "$oshCoreDir"
 
-project(':swe-common-core').projectDir = "$rootDir/submodules/lib-ogc/swe-common-core" as File
-project(':swe-common-om').projectDir = "$rootDir/submodules/lib-ogc/swe-common-om" as File
+includeBuild "$oshCoreDir"

@@ -1,8 +1,10 @@
 plugins {
-    id 'java'
+    id 'java-library'
 }
 
-apply from: gradle.oshCoreDir + '/common.gradle'
+var oshCoreDir = "$projectDir/submodules/osh-core"
+
+apply from: oshCoreDir + '/common.gradle'
 group = 'org.sensorhub'
 version = '1.0'
 
@@ -20,10 +22,11 @@ dependencies {
     implementation 'org.apache.httpcomponents:httpclient:4.5.14'
     implementation 'org.eclipse.jetty.websocket:websocket-client:9.4.56.v20240826'
     implementation 'org.json:json:20240303'
-    implementation 'org.sensorhub:sensorhub-core:' + oshCoreVersion
+    api 'org.sensorhub:sensorhub-core:' + oshCoreVersion
     implementation 'org.sensorhub:sensorhub-datastore-h2:' + oshCoreVersion
     implementation 'org.sensorhub:sensorhub-service-consys:' + oshCoreVersion
-    implementation project(':swe-common-om')
+
+    implementation 'org.vast.opengis:swe-common-om:' + oshCoreVersion
 
     testImplementation platform('org.junit:junit-bom:5.10.0')
     testImplementation 'org.junit.jupiter:junit-jupiter-api'
@@ -40,6 +43,13 @@ subprojects {
     apply plugin: 'java-library'
 
     ext.pom = {}
+}
+
+jar {
+    enabled = true
+    archiveBaseName.set('OSHConnect-Java')
+    archiveVersion.set(version)
+    destinationDirectory.set(file("$buildDir/libs"))
 }
 
 test {
