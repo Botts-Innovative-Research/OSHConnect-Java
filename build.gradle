@@ -1,5 +1,5 @@
 plugins {
-    id 'java'
+    id 'java-library'
 }
 
 var oshCoreDir = "$projectDir/submodules/osh-core"
@@ -22,7 +22,7 @@ dependencies {
     implementation 'org.apache.httpcomponents:httpclient:4.5.14'
     implementation 'org.eclipse.jetty.websocket:websocket-client:9.4.56.v20240826'
     implementation 'org.json:json:20240303'
-    implementation 'org.sensorhub:sensorhub-core:' + oshCoreVersion
+    api 'org.sensorhub:sensorhub-core:' + oshCoreVersion
     implementation 'org.sensorhub:sensorhub-datastore-h2:' + oshCoreVersion
     implementation 'org.sensorhub:sensorhub-service-consys:' + oshCoreVersion
 
