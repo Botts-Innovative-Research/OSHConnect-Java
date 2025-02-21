@@ -1,7 +1,6 @@
 package org.sensorhub.oshconnect.datamodels;
 
 import com.google.gson.annotations.SerializedName;
-import lombok.Getter;
 import net.opengis.swe.v20.DataBlock;
 import org.sensorhub.api.command.ICommandStatus;
 import org.vast.util.Asserts;
@@ -11,7 +10,6 @@ import org.vast.util.TimeExtent;
 import java.time.Instant;
 import java.util.List;
 
-@Getter
 public class CommandData {
     /**
      * Local ID of the command.
@@ -61,6 +59,78 @@ public class CommandData {
 
     public static CommandData.CommandDataBuilder newBuilder() {
         return new CommandData.CommandDataBuilder();
+    }
+
+    /**
+     * Local ID of the command.
+     */
+    public String getId() {
+        return id;
+    }
+
+    /**
+     * Local ID of the control stream that the command is part of.
+     */
+    public String getControlStreamId() {
+        return controlStreamId;
+    }
+
+    /**
+     * Local ID of the sampling feature that is the target of the command.
+     */
+    public String getSamplingFeatureId() {
+        return samplingFeatureId;
+    }
+
+    /**
+     * Link to the procedure/method used to make the command.
+     */
+    public Link getProcedureLink() {
+        return procedureLink;
+    }
+
+    /**
+     * Time at which the command was issued.
+     * If omitted on creation, the server sets it to the time the request was received.
+     */
+    public Instant getIssueTime() {
+        return issueTime;
+    }
+
+    /**
+     * Time period during which the command was executed
+     */
+    public TimeExtent getExecutionTime() {
+        return executionTime;
+    }
+
+    /**
+     * Identifier of the person or entity who submitted the command.
+     */
+    public String getSender() {
+        return sender;
+    }
+
+    /**
+     * Current status of the command.
+     */
+    public ICommandStatus.CommandStatusCode getCurrentStatus() {
+        return currentStatus;
+    }
+
+    /**
+     * Command parameters.
+     * Must be valid, according to the schema provided in the control stream metadata.
+     */
+    public DataBlock getParameters() {
+        return parameters;
+    }
+
+    /**
+     * Links to related resources.
+     */
+    public List<Link> getLinks() {
+        return links;
     }
 
     public static class CommandDataBuilder extends BaseBuilder<CommandData> {

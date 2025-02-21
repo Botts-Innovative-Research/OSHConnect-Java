@@ -5,12 +5,9 @@
 
 package org.sensorhub.oshconnect.net;
 
-import lombok.Getter;
-
 /**
  * Enumeration of protocols used by OSH Connect.
  */
-@Getter
 public enum Protocol {
     HTTP("http://"),
     HTTPS("https://"),
@@ -29,5 +26,12 @@ public enum Protocol {
      */
     Protocol(String prefix) {
         this.prefix = prefix;
+    }
+
+    /**
+     * String representation of the protocol's prefix.
+     */
+    public String getPrefix() {
+        return prefix;
     }
 }

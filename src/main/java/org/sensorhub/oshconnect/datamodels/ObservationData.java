@@ -1,8 +1,6 @@
 package org.sensorhub.oshconnect.datamodels;
 
 import com.google.gson.annotations.SerializedName;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import net.opengis.swe.v20.DataBlock;
 import org.vast.util.Asserts;
 import org.vast.util.BaseBuilder;
@@ -10,8 +8,6 @@ import org.vast.util.BaseBuilder;
 import java.time.Instant;
 import java.util.List;
 
-@Getter
-@RequiredArgsConstructor
 public class ObservationData {
     /**
      * Local ID of the observation.
@@ -58,6 +54,72 @@ public class ObservationData {
 
     public static ObservationData.ObservationDataBuilder newBuilder() {
         return new ObservationData.ObservationDataBuilder();
+    }
+
+    /**
+     * Local ID of the observation.
+     */
+    public String getId() {
+        return id;
+    }
+
+    /**
+     * Local ID of the data stream that the observation is part of.
+     */
+    public String getDataStreamId() {
+        return dataStreamId;
+    }
+
+    /**
+     * Local ID of the sampling feature that is the target of the observation.
+     */
+    public String getSamplingFeatureId() {
+        return samplingFeatureId;
+    }
+
+    /**
+     * Link to the procedure/method used to make the observation.
+     */
+
+    public Link getProcedureLink() {
+        return procedureLink;
+    }
+
+    /**
+     * Time at which the observation result is a valid estimate of the sampling feature property(ies).
+     * Defaults to the same value as {@link #resultTime}.
+     */
+    public Instant getPhenomenonTime() {
+        return phenomenonTime;
+    }
+
+    /**
+     * The time at which the observation result was generated.
+     */
+    public Instant getResultTime() {
+        return resultTime;
+    }
+
+    /**
+     * Result of the observation.
+     * Must be valid, according to the result schema provided in the data stream metadata.
+     */
+    public DataBlock getResult() {
+        return result;
+    }
+
+    /**
+     * Link to external result data (e.g. large raster dataset served by a tiling service).
+     */
+    public Link getResultLink() {
+        return resultLink;
+    }
+
+    /**
+     * Links to related resources.
+     */
+    public List<Link> getLinks() {
+        return links;
     }
 
     public static class ObservationDataBuilder extends BaseBuilder<ObservationData> {

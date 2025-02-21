@@ -1,6 +1,5 @@
 package org.sensorhub.oshconnect;
 
-import lombok.Getter;
 import org.sensorhub.api.command.ICommandStreamInfo;
 import org.sensorhub.impl.service.consys.client.ConSysApiClient;
 import org.sensorhub.impl.service.consys.resource.ResourceFormat;
@@ -12,7 +11,6 @@ import org.sensorhub.oshconnect.util.Utilities;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
-@Getter
 public class OSHControlStream implements OSHStream {
     private final OSHSystem parentSystem;
     private final String id;
@@ -22,13 +20,6 @@ public class OSHControlStream implements OSHStream {
         this.parentSystem = parentSystem;
         this.id = id;
         this.controlStreamResource = controlStreamResource;
-    }
-
-    /**
-     * Returns the endpoint for the commands of this control stream.
-     */
-    public String getEndpoint() {
-        return Utilities.joinPath(parentSystem.getParentNode().getApiEndpoint(), Service.CONTROLSTREAMS.getEndpoint(), getId(), Service.COMMANDS.getEndpoint());
     }
 
     /**
@@ -99,5 +90,24 @@ public class OSHControlStream implements OSHStream {
 
     public ConSysApiClientExtras getConnectedSystemsApiClientExtras() {
         return parentSystem.getConnectedSystemsApiClientExtras();
+    }
+
+    public OSHSystem getParentSystem() {
+        return parentSystem;
+    }
+
+    /**
+     * Returns the endpoint for the commands of this control stream.
+     */
+    public String getEndpoint() {
+        return Utilities.joinPath(parentSystem.getParentNode().getApiEndpoint(), Service.CONTROLSTREAMS.getEndpoint(), getId(), Service.COMMANDS.getEndpoint());
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public ICommandStreamInfo getControlStreamResource() {
+        return controlStreamResource;
     }
 }

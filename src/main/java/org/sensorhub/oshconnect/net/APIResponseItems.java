@@ -5,9 +5,6 @@ import com.google.gson.reflect.TypeToken;
 
 import java.util.List;
 
-import lombok.Getter;
-
-@Getter
 public class APIResponseItems<T> {
     private final List<T> items;
 
@@ -17,5 +14,9 @@ public class APIResponseItems<T> {
 
     public static <T> APIResponseItems<T> fromJson(String json, Class<T> clazz) {
         return new Gson().fromJson(json, TypeToken.getParameterized(APIResponseItems.class, clazz).getType());
+    }
+
+    public List<T> getItems() {
+        return items;
     }
 }

@@ -1,11 +1,8 @@
 package org.sensorhub.oshconnect.constants;
 
-import lombok.Getter;
-
 /**
  * Enumeration of the services supported by OpenSensorHub and their endpoints
  */
-@Getter
 public enum Service {
     /**
      * Connected Systems API
@@ -34,5 +31,12 @@ public enum Service {
     @Override
     public String toString() {
         return getEndpoint();
+    }
+
+    /**
+     * String representing the endpoint where the service is supported on the server.
+     */
+    public String getEndpoint() {
+        return endpoint;
     }
 }

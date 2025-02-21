@@ -1,8 +1,6 @@
 package org.sensorhub.oshconnect;
 
 import com.google.gson.Gson;
-import lombok.Getter;
-import lombok.Setter;
 import org.sensorhub.api.system.ISystemWithDesc;
 import org.sensorhub.impl.service.consys.client.ConSysApiClient;
 import org.sensorhub.impl.service.consys.resource.ResourceFormat;
@@ -24,36 +22,28 @@ public class OSHNode {
     /**
      * The root URL of the OpenSensorHub server, i.e., localhost:8181/sensorhub
      */
-    @Getter
     private final String sensorHubRoot;
     /**
      * Flag indicating if server is secured through TLS/SSL
      */
-    @Getter
     private final boolean isSecure;
     /**
      * A unique id of the server, for configuration management.
      */
-    @Getter
     private final UUID uniqueId;
     private final Set<INotificationSystem> systemNotificationListeners = new HashSet<>();
     private final Set<OSHSystem> systems = new HashSet<>();
     /**
      * Friendly name for the server.
      */
-    @Getter
-    @Setter
     private String name = "OSH Node";
     /**
      * The authorization token for the server.
      * This is a Base64 encoded string of the form "username:password".
      * May be null if the username or password were not provided.
      */
-    @Getter
     private String authorizationToken;
-    @Getter
     private String username;
-    @Getter
     private String password;
 
     public OSHNode(String sensorHubRoot, boolean isSecure, String username, String password) {
@@ -372,5 +362,63 @@ public class OSHNode {
             conSysBuilder.simpleAuth(username, password.toCharArray());
         }
         return conSysBuilder.build();
+    }
+
+    /**
+     * The root URL of the OpenSensorHub server, i.e., localhost:8181/sensorhub
+     */
+    public String getSensorHubRoot() {
+        return sensorHubRoot;
+    }
+
+    /**
+     * Flag indicating if server is secured through TLS/SSL
+     */
+    public boolean isSecure() {
+        return isSecure;
+    }
+
+    /**
+     * A unique id of the server, for configuration management.
+     */
+    public UUID getUniqueId() {
+        return uniqueId;
+    }
+
+    /**
+     * Friendly name for the server.
+     */
+    public String getName() {
+        return name;
+    }
+
+    /**
+     * Friendly name for the server.
+     */
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    /**
+     * The authorization token for the server.
+     * This is a Base64 encoded string of the form "username:password".
+     * May be null if the username or password were not provided.
+     */
+    public String getAuthorizationToken() {
+        return authorizationToken;
+    }
+
+    /**
+     * The username for the server, if authentication is required.
+     */
+    public String getUsername() {
+        return username;
+    }
+
+    /**
+     * The password for the server, if authentication is required.
+     */
+    public String getPassword() {
+        return password;
     }
 }

@@ -1,7 +1,5 @@
 package org.sensorhub.oshconnect;
 
-import lombok.Getter;
-import lombok.Setter;
 import org.sensorhub.oshconnect.config.ConfigManager;
 import org.sensorhub.oshconnect.config.ConfigManagerJson;
 
@@ -12,7 +10,6 @@ import java.util.stream.Collectors;
 /**
  * OSHConnect is the main class for connecting to OpenSensorHub servers and managing data streams.
  */
-@Getter
 public class OSHConnect {
     /**
      * The name of the OSHConnect instance.
@@ -37,7 +34,6 @@ public class OSHConnect {
     /**
      * The configuration manager, used to export and import configuration data.
      */
-    @Setter
     private ConfigManager configManager = new ConfigManagerJson(this);
 
     /**
@@ -166,5 +162,56 @@ public class OSHConnect {
         dataStreamManager.shutdown();
         nodeManager.shutdown();
         notificationManager.shutdown();
+    }
+
+    /**
+     * The name of the OSHConnect instance.
+     */
+    public String getName() {
+        return name;
+    }
+
+    /**
+     * The node manager, used to create and manage connections to OpenSensorHub servers.
+     */
+    public NodeManager getNodeManager() {
+        return nodeManager;
+    }
+
+    /**
+     * The data stream manager, used to create and manage connections to data streams.
+     */
+    public StreamManager getDataStreamManager() {
+        return dataStreamManager;
+    }
+
+    /**
+     * The control stream manager, used to create and manage connections to control streams.
+     */
+    public StreamManager getControlStreamManager() {
+        return controlStreamManager;
+    }
+
+    /**
+     * The notification manager, used to notify listeners of changes to nodes, systems, and data streams.
+     */
+    public NotificationManager getNotificationManager() {
+        return notificationManager;
+    }
+
+    /**
+     * The configuration manager, used to export and import configuration data.
+     */
+    public ConfigManager getConfigManager() {
+        return configManager;
+    }
+
+    /**
+     * The configuration manager, used to export and import configuration data.
+     * Note: The default configuration manager is {@link ConfigManagerJson}.
+     * This method allows the user to set a custom configuration manager.
+     */
+    public void setConfigManager(ConfigManager configManager) {
+        this.configManager = configManager;
     }
 }

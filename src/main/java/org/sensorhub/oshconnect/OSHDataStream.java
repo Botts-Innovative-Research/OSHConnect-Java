@@ -1,6 +1,5 @@
 package org.sensorhub.oshconnect;
 
-import lombok.Getter;
 import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.impl.service.consys.client.ConSysApiClient;
 import org.sensorhub.impl.service.consys.resource.ResourceFormat;
@@ -15,7 +14,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
-@Getter
 public class OSHDataStream implements OSHStream {
     private final OSHSystem parentSystem;
     private final String id;
@@ -25,13 +23,6 @@ public class OSHDataStream implements OSHStream {
         this.parentSystem = parentSystem;
         this.id = id;
         this.dataStreamResource = dataStreamResource;
-    }
-
-    /**
-     * Returns the endpoint for the observations of this data stream.
-     */
-    public String getEndpoint() {
-        return Utilities.joinPath(parentSystem.getParentNode().getApiEndpoint(), Service.DATASTREAMS.getEndpoint(), getId(), Service.OBSERVATIONS.getEndpoint());
     }
 
     /**
@@ -131,5 +122,24 @@ public class OSHDataStream implements OSHStream {
 
     public ConSysApiClientExtras getConnectedSystemsApiClientExtras() {
         return parentSystem.getConnectedSystemsApiClientExtras();
+    }
+
+    public OSHSystem getParentSystem() {
+        return parentSystem;
+    }
+
+    /**
+     * Returns the endpoint for the observations of this data stream.
+     */
+    public String getEndpoint() {
+        return Utilities.joinPath(parentSystem.getParentNode().getApiEndpoint(), Service.DATASTREAMS.getEndpoint(), getId(), Service.OBSERVATIONS.getEndpoint());
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public IDataStreamInfo getDataStreamResource() {
+        return dataStreamResource;
     }
 }

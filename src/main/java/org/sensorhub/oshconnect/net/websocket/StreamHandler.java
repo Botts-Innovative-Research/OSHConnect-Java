@@ -1,6 +1,5 @@
 package org.sensorhub.oshconnect.net.websocket;
 
-import lombok.Getter;
 import org.sensorhub.oshconnect.OSHStream;
 import org.sensorhub.oshconnect.StreamManager;
 import org.sensorhub.oshconnect.net.RequestFormat;
@@ -19,20 +18,17 @@ import java.util.function.Consumer;
  */
 public abstract class StreamHandler implements StreamEventListener {
     private final List<StreamListener> dataStreamListeners = new ArrayList<>();
-    @Getter
     private final TimeSynchronizer<StreamEventArgs> timeSynchronizer;
 
     /**
      * The format of the request.
      * If null, the format will not be specified in the request, i.e., the data will be received in the default format.
      */
-    @Getter
     private RequestFormat requestFormat;
     /**
      * The time period for the data stream.
      * If null, the time period will not be specified in the request, i.e., will listen to the data stream in real-time.
      */
-    @Getter
     private TimeExtent timeExtent;
     /**
      * The replay speed for the data stream.
@@ -40,12 +36,10 @@ public abstract class StreamHandler implements StreamEventListener {
      * 1.0 is the default speed, 0.1 is 10 times slower, 10.0 is 10 times faster.
      * Zero or negative values will result in no data being received.
      */
-    @Getter
     private double replaySpeed = 1;
     /**
      * The status of the data stream handler.
      */
-    @Getter
     private StreamStatus status = StreamStatus.DISCONNECTED;
 
     /**
@@ -178,6 +172,18 @@ public abstract class StreamHandler implements StreamEventListener {
         return new ArrayList<>(dataStreamListeners);
     }
 
+    public TimeSynchronizer<StreamEventArgs> getTimeSynchronizer() {
+        return timeSynchronizer;
+    }
+
+    /**
+     * The format of the request.
+     * If null, the format will not be specified in the request, i.e., the data will be received in the default format.
+     */
+    public RequestFormat getRequestFormat() {
+        return requestFormat;
+    }
+
     /**
      * Sets the format of the request.
      * If null, the format will not be specified in the request, i.e., the data will be received in the default format.
@@ -191,6 +197,39 @@ public abstract class StreamHandler implements StreamEventListener {
         for (StreamListener listener : dataStreamListeners) {
             listener.setRequestFormat(requestFormat);
         }
+    }
+
+    /**
+     * The time period for the data stream.
+     * If null, the time period will not be specified in the request, i.e., will listen to the data stream in real-time.
+     */
+    public TimeExtent getTimeExtent() {
+        return timeExtent;
+    }
+
+    /**
+     * Sets the time period for the data stream.
+     * If null, the time period will not be specified in the request, i.e., will listen to the data stream in real-time.
+     * Calling this method will reconnect to the data stream if it is already connected.
+     *
+     * @param timeExtent the time period of the request.
+     *                   Set to null to remove the previously set time period.
+     */
+    public void setTimeExtent(TimeExtent timeExtent) {
+        this.timeExtent = timeExtent;
+        for (StreamListener listener : dataStreamListeners) {
+            listener.setTimeExtent(timeExtent);
+        }
+    }
+
+    /**
+     * The replay speed for the data stream.
+     * Only applicable for historical data streams.
+     * 1.0 is the default speed, 0.1 is 10 times slower, 10.0 is 10 times faster.
+     * Zero or negative values will result in no data being received.
+     */
+    public double getReplaySpeed() {
+        return replaySpeed;
     }
 
     /**
@@ -210,17 +249,9 @@ public abstract class StreamHandler implements StreamEventListener {
     }
 
     /**
-     * Sets the time period for the data stream.
-     * If null, the time period will not be specified in the request, i.e., will listen to the data stream in real-time.
-     * Calling this method will reconnect to the data stream if it is already connected.
-     *
-     * @param timeExtent the time period of the request.
-     *                   Set to null to remove the previously set time period.
+     * The status of the data stream handler.
      */
-    public void setTimeExtent(TimeExtent timeExtent) {
-        this.timeExtent = timeExtent;
-        for (StreamListener listener : dataStreamListeners) {
-            listener.setTimeExtent(timeExtent);
-        }
+    public StreamStatus getStatus() {
+        return status;
     }
 }

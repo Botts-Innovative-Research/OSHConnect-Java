@@ -1,6 +1,5 @@
 package org.sensorhub.oshconnect.net.websocket;
 
-import lombok.Getter;
 import org.json.JSONObject;
 import org.sensorhub.oshconnect.OSHStream;
 import org.sensorhub.oshconnect.net.RequestFormat;
@@ -26,7 +25,6 @@ public abstract class StreamListener implements StreamEventListener {
     /**
      * The data stream being listened to.
      */
-    @Getter
     private final OSHStream dataStream;
     private final List<StatusListener> statusListeners = new ArrayList<>();
     private boolean isShutdown = false;
@@ -38,13 +36,11 @@ public abstract class StreamListener implements StreamEventListener {
      * The format of the request.
      * If null, the format will not be specified in the request, i.e., the data will be received in the default format.
      */
-    @Getter
     private RequestFormat requestFormat;
     /**
      * The time period for the data stream.
      * If null, the time period will not be specified in the request, i.e., will listen to the data stream in real-time.
      */
-    @Getter
     private TimeExtent timeExtent;
     /**
      * The replay speed for the data stream.
@@ -52,7 +48,6 @@ public abstract class StreamListener implements StreamEventListener {
      * 1.0 is the default speed, 0.1 is 10 times slower, 10.0 is 10 times faster.
      * Zero or negative values will result in no data being received.
      */
-    @Getter
     private double replaySpeed = 1;
 
     /**
@@ -203,46 +198,6 @@ public abstract class StreamListener implements StreamEventListener {
     }
 
     /**
-     * Sets the format of the request.
-     * If null, the format will not be specified in the request, i.e., the data will be received in the default format.
-     * Calling this method will reconnect to the data stream if it is already connected.
-     *
-     * @param requestFormat the format of the request.
-     *                      Set to null to remove the previously set format.
-     */
-    public void setRequestFormat(RequestFormat requestFormat) {
-        this.requestFormat = requestFormat;
-        reconnectIfConnected();
-    }
-
-    /**
-     * Sets the replay speed for the data stream.
-     * Only applicable for historical data streams.
-     * 1.0 is the default speed, 0.1 is 10 times slower, 10.0 is 10 times faster.
-     * Zero or negative values will result in no data being received.
-     * Calling this method will reconnect to the data stream if it is already connected.
-     *
-     * @param replaySpeed the replay speed of the request.
-     */
-    public void setReplaySpeed(double replaySpeed) {
-        this.replaySpeed = replaySpeed;
-        reconnectIfConnected();
-    }
-
-    /**
-     * Sets the time period for the data stream.
-     * If null, the time period will not be specified in the request, i.e., will listen to the data stream in real-time.
-     * Calling this method will reconnect to the data stream if it is already connected.
-     *
-     * @param timeExtent the time period of the request.
-     *                   Set to null to remove the previously set time period.
-     */
-    public void setTimeExtent(TimeExtent timeExtent) {
-        this.timeExtent = timeExtent;
-        reconnectIfConnected();
-    }
-
-    /**
      * Builds the request string for the data stream.
      *
      * @return the request string.
@@ -282,5 +237,85 @@ public abstract class StreamListener implements StreamEventListener {
         for (StatusListener listener : statusListeners) {
             listener.onStatusChanged(newStatus);
         }
+    }
+
+    /**
+     * The data stream being listened to.
+     */
+    public OSHStream getDataStream() {
+        return dataStream;
+    }
+
+    /**
+     * The WebSocket connection to the data stream.
+     */
+    public WebSocketConnection getWebSocketConnection() {
+        return webSocketConnection;
+    }
+
+    /**
+     * The format of the request.
+     * If null, the format will not be specified in the request, i.e., the data will be received in the default format.
+     */
+    public RequestFormat getRequestFormat() {
+        return requestFormat;
+    }
+
+    /**
+     * Sets the format of the request.
+     * If null, the format will not be specified in the request, i.e., the data will be received in the default format.
+     * Calling this method will reconnect to the data stream if it is already connected.
+     *
+     * @param requestFormat the format of the request.
+     *                      Set to null to remove the previously set format.
+     */
+    public void setRequestFormat(RequestFormat requestFormat) {
+        this.requestFormat = requestFormat;
+        reconnectIfConnected();
+    }
+
+    /**
+     * The time period for the data stream.
+     * If null, the time period will not be specified in the request, i.e., will listen to the data stream in real-time.
+     */
+    public TimeExtent getTimeExtent() {
+        return timeExtent;
+    }
+
+    /**
+     * Sets the time period for the data stream.
+     * If null, the time period will not be specified in the request, i.e., will listen to the data stream in real-time.
+     * Calling this method will reconnect to the data stream if it is already connected.
+     *
+     * @param timeExtent the time period of the request.
+     *                   Set to null to remove the previously set time period.
+     */
+    public void setTimeExtent(TimeExtent timeExtent) {
+        this.timeExtent = timeExtent;
+        reconnectIfConnected();
+    }
+
+    /**
+     * The replay speed for the data stream.
+     * Only applicable for historical data streams.
+     * 1.0 is the default speed, 0.1 is 10 times slower, 10.0 is 10 times faster.
+     * Zero or negative values will result in no data being received.
+     */
+    public double getReplaySpeed() {
+        return replaySpeed;
+    }
+
+    /**
+     * Sets the replay speed for the data stream.
+     * Only applicable for historical data streams.
+     * 1.0 is the default speed, 0.1 is 10 times slower, 10.0 is 10 times faster.
+     * Zero or negative values will result in no data being received.
+     * Calling this method will reconnect to the data stream if it is already connected.
+     *
+     * @param replaySpeed the replay speed of the request.
+     */
+    public void setReplaySpeed(double replaySpeed) {
+        this.replaySpeed = replaySpeed;
+        reconnectIfConnected();
     }
 }

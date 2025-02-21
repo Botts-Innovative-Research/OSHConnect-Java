@@ -1,6 +1,5 @@
 package org.sensorhub.oshconnect.util;
 
-import lombok.Getter;
 import org.vast.util.TimeExtent;
 
 import java.time.Instant;
@@ -17,14 +16,14 @@ import java.util.Map;
  * The resulting query string may be obtained by calling {@link #getQueryString()},
  * and may be an empty string if no or null parameters were added.
  */
-@Getter
 public class QueryStringBuilder {
     private static final Instant MIN_TIME = Instant.parse("0000-01-01T00:00:00Z");
     private static final Instant MAX_TIME = Instant.parse("9999-12-31T23:59:59.999Z");
     private static final String SPECIAL_VALUE_NOW = "now";
 
     /**
-     * The map of parameters. The key is the parameter name, and the value is the parameter value.
+     * The map of parameters.
+     * The key is the parameter name, and the value is the parameter value.
      * This will not contain any parameters with null or empty values.
      */
     private final Map<String, String> parameters = new HashMap<>();
@@ -147,5 +146,14 @@ public class QueryStringBuilder {
             return MAX_TIME.toString();
         }
         return instant.toString();
+    }
+
+    /**
+     * The map of parameters.
+     * The key is the parameter name, and the value is the parameter value.
+     * This will not contain any parameters with null or empty values.
+     */
+    public Map<String, String> getParameters() {
+        return parameters;
     }
 }

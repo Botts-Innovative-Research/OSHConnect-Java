@@ -5,9 +5,6 @@ import com.google.gson.Gson;
 import java.util.Collections;
 import java.util.List;
 
-import lombok.Getter;
-
-@Getter
 public class APIResponse {
     private final int responseCode;
     private final String responseMessage;
@@ -46,5 +43,17 @@ public class APIResponse {
         }
         APIResponseItems<T> apiResponse = APIResponseItems.fromJson(responseBody, clazz);
         return apiResponse.getItems();
+    }
+
+    public int getResponseCode() {
+        return responseCode;
+    }
+
+    public String getResponseMessage() {
+        return responseMessage;
+    }
+
+    public String getResponseBody() {
+        return responseBody;
     }
 }

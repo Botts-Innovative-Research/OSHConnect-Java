@@ -4,7 +4,6 @@
  */
 package org.sensorhub.oshconnect.net.websocket;
 
-import lombok.Getter;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.WebSocketListener;
 import org.eclipse.jetty.websocket.client.ClientUpgradeRequest;
@@ -23,7 +22,6 @@ public class WebSocketConnection implements WebSocketListener {
     private final String request;
     private final WebSocketClient client = new WebSocketClient();
     private final List<StatusListener> statusListeners = new ArrayList<>();
-    @Getter
     private StreamStatus status = StreamStatus.DISCONNECTED;
 
     public WebSocketConnection(StreamListener streamListener, String request) {
@@ -93,5 +91,9 @@ public class WebSocketConnection implements WebSocketListener {
         for (StatusListener listener : statusListeners) {
             listener.onStatusChanged(newStatus);
         }
+    }
+
+    public StreamStatus getStatus() {
+        return status;
     }
 }

@@ -1,8 +1,5 @@
 package org.sensorhub.oshconnect.time;
 
-import lombok.Getter;
-import lombok.Setter;
-
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -20,7 +17,7 @@ import java.util.function.Consumer;
  * The time synchronization can be enabled or disabled at any time.
  * When disabled, events will be triggered immediately instead of being buffered,
  * making it possible to switch between real-time and synchronized processing without separate code paths.
- * Add an event using the {@link #addEvent(long, Object)} method and it will be either buffered and processed later
+ * Add an event using the {@link #addEvent(long, Object)} method, and it will be either buffered and processed later
  * or fired immediately depending on whether time synchronization is enabled.
  *
  * @param <T> The type of the event.
@@ -35,20 +32,15 @@ public class TimeSynchronizer<T> {
     /**
      * The time in milliseconds to buffer events for time synchronization.
      */
-    @Getter
     private int bufferTimeMS = 1000;
     /**
      * When time synchronization is enabled, events with a timestamp outside the buffer time will be discarded.
      * True by default.
      */
-    @Getter
-    @Setter
     private boolean discardOutdatedEvents = true;
     /**
-     * Whether to discard any buffered events when time synchronization is turned off or when resetting.
+     * Whether to discard any buffered events, when time synchronization is turned off or when resetting.
      */
-    @Getter
-    @Setter
     private boolean discardBuffer = true;
 
     /**
@@ -148,6 +140,13 @@ public class TimeSynchronizer<T> {
     }
 
     /**
+     * The time in milliseconds to buffer events for time synchronization.
+     */
+    public int getBufferTimeMS() {
+        return bufferTimeMS;
+    }
+
+    /**
      * Sets the buffer time in milliseconds.
      *
      * @param bufferTimeMS The buffer time in milliseconds.
@@ -159,5 +158,35 @@ public class TimeSynchronizer<T> {
             throw new IllegalArgumentException("Buffer time must be greater than 0");
         }
         this.bufferTimeMS = bufferTimeMS;
+    }
+
+    /**
+     * When time synchronization is enabled, events with a timestamp outside the buffer time will be discarded.
+     * True by default.
+     */
+    public boolean getDiscardOutdatedEvents() {
+        return discardOutdatedEvents;
+    }
+
+    /**
+     * When time synchronization is enabled, events with a timestamp outside the buffer time will be discarded.
+     * True by default.
+     */
+    public void setDiscardOutdatedEvents(boolean discardOutdatedEvents) {
+        this.discardOutdatedEvents = discardOutdatedEvents;
+    }
+
+    /**
+     * Whether to discard any buffered events, when time synchronization is turned off or when resetting.
+     */
+    public boolean getDiscardBuffer() {
+        return discardBuffer;
+    }
+
+    /**
+     * Whether to discard any buffered events, when time synchronization is turned off or when resetting.
+     */
+    public void setDiscardBuffer(boolean discardBuffer) {
+        this.discardBuffer = discardBuffer;
     }
 }

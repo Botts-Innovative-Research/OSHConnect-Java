@@ -1,6 +1,5 @@
 package org.sensorhub.oshconnect;
 
-import lombok.Getter;
 import org.sensorhub.api.command.CommandStreamInfo;
 import org.sensorhub.api.data.DataStreamInfo;
 import org.sensorhub.api.system.ISystemWithDesc;
@@ -21,13 +20,11 @@ import java.util.concurrent.ExecutionException;
  * Class representing an OpenSensorHub system.
  */
 public class OSHSystem {
-    @Getter
     private final OSHNode parentNode;
     private final Set<OSHDataStream> dataStreams = new HashSet<>();
     private final Set<OSHControlStream> controlStreams = new HashSet<>();
     private final Set<INotificationDataStream> dataStreamNotificationListeners = new HashSet<>();
     private final Set<INotificationControlStream> controlStreamNotificationListeners = new HashSet<>();
-    @Getter
     private ISystemWithDesc systemResource;
 
     public OSHSystem(OSHNode parentNode, ISystemWithDesc systemResource) {
@@ -314,5 +311,19 @@ public class OSHSystem {
         for (INotificationControlStream listener : controlStreamNotificationListeners) {
             listener.onItemRemoved(controlStream);
         }
+    }
+
+    /**
+     * The node this system belongs to.
+     */
+    public OSHNode getParentNode() {
+        return parentNode;
+    }
+
+    /**
+     * The system resource.
+     */
+    public ISystemWithDesc getSystemResource() {
+        return systemResource;
     }
 }

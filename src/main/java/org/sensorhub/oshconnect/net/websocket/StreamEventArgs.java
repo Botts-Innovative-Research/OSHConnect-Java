@@ -1,7 +1,5 @@
 package org.sensorhub.oshconnect.net.websocket;
 
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import org.sensorhub.impl.service.consys.obs.ObsHandler;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
 import org.sensorhub.impl.service.consys.resource.ResourceFormat;
@@ -17,13 +15,18 @@ import java.io.IOException;
 /**
  * Event arguments for data stream events.
  */
-@Getter
-@RequiredArgsConstructor
 public class StreamEventArgs {
     protected final long timestamp;
     protected final byte[] data;
     protected final RequestFormat format;
     protected final OSHStream stream;
+
+    public StreamEventArgs(long timestamp, byte[] data, RequestFormat format, OSHStream stream) {
+        this.timestamp = timestamp;
+        this.data = data;
+        this.format = format;
+        this.stream = stream;
+    }
 
     /**
      * Returns the data as an ObservationData object or null if the data is not in JSON format.
@@ -48,5 +51,21 @@ public class StreamEventArgs {
         } catch (IOException e) {
             return null;
         }
+    }
+
+    public long getTimestamp() {
+        return timestamp;
+    }
+
+    public byte[] getData() {
+        return data;
+    }
+
+    public RequestFormat getFormat() {
+        return format;
+    }
+
+    public OSHStream getStream() {
+        return stream;
     }
 }
