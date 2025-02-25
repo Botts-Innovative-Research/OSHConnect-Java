@@ -451,7 +451,7 @@ public class ConSysApiClientExtras {
                 URL url = collectionUri.toURL();
                 connection = (HttpURLConnection) url.openConnection();
                 if (authenticator != null) {
-                    connection.setAuthenticator(authenticator);
+                    Authenticator.setDefault(authenticator);
                 }
                 connection.setRequestMethod("GET");
                 connection.setRequestProperty(HttpHeaders.ACCEPT, format.getMimeType());
@@ -481,7 +481,7 @@ public class ConSysApiClientExtras {
                 URL url = collectionUri.toURL();
                 connection = (HttpURLConnection) url.openConnection();
                 if (authenticator != null) {
-                    connection.setAuthenticator(authenticator);
+                    Authenticator.setDefault(authenticator);
                 }
                 connection.setRequestMethod("POST");
                 connection.setRequestProperty(HttpHeaders.ACCEPT, ResourceFormat.JSON.getMimeType());
@@ -523,7 +523,7 @@ public class ConSysApiClientExtras {
                 URL url = collectionUri.toURL();
                 connection = (HttpURLConnection) url.openConnection();
                 if (authenticator != null) {
-                    connection.setAuthenticator(authenticator);
+                    Authenticator.setDefault(authenticator);
                 }
                 connection.setRequestMethod("PUT");
                 connection.setRequestProperty(HttpHeaders.ACCEPT, ResourceFormat.JSON.getMimeType());
@@ -552,7 +552,7 @@ public class ConSysApiClientExtras {
                 URL url = collectionUri.toURL();
                 connection = (HttpURLConnection) url.openConnection();
                 if (authenticator != null) {
-                    connection.setAuthenticator(authenticator);
+                    Authenticator.setDefault(authenticator);
                 }
                 connection.setRequestMethod("DELETE");
                 connection.setRequestProperty(HttpHeaders.ACCEPT, ResourceFormat.JSON.getMimeType());
