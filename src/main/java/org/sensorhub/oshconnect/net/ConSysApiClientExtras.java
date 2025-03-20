@@ -23,13 +23,7 @@ import org.vast.util.Asserts;
 import org.vast.util.BaseBuilder;
 
 import java.io.*;
-import java.net.Authenticator;
-import java.net.PasswordAuthentication;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
+import java.net.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -44,9 +38,10 @@ public class ConSysApiClientExtras {
     static final String CONTROLS_COLLECTION = "controlstreams";
     static final String OBSERVATIONS_COLLECTION = "observations";
     static final String COMMANDS_COLLECTION = "commands";
+    static final String BINDING_ERROR = "Error initializing binding";
 
-    protected HttpClient http;
     protected URI endpoint;
+    protected Authenticator authenticator;
 
     protected ConSysApiClientExtras() {
     }
@@ -134,7 +129,7 @@ public class ConSysApiClientExtras {
                     ResourceFormat.JSON,
                     buffer.toByteArray());
         } catch (IOException e) {
-            throw new IllegalStateException("Error initializing binding", e);
+            throw new IllegalStateException(BINDING_ERROR, e);
         }
     }
 
@@ -168,7 +163,7 @@ public class ConSysApiClientExtras {
                     ctx.getFormat(),
                     buffer.toByteArray());
         } catch (IOException e) {
-            throw new IllegalStateException("Error initializing binding", e);
+            throw new IllegalStateException(BINDING_ERROR, e);
         }
     }
 
@@ -325,7 +320,7 @@ public class ConSysApiClientExtras {
                     ResourceFormat.JSON,
                     buffer.toByteArray());
         } catch (IOException e) {
-            throw new IllegalStateException("Error initializing binding", e);
+            throw new IllegalStateException(BINDING_ERROR, e);
         }
     }
 
@@ -365,7 +360,7 @@ public class ConSysApiClientExtras {
                     ctx.getFormat(),
                     buffer.toByteArray());
         } catch (IOException e) {
-            throw new IllegalStateException("Error initializing binding", e);
+            throw new IllegalStateException(BINDING_ERROR, e);
         }
     }
 
@@ -450,82 +445,132 @@ public class ConSysApiClientExtras {
     }
 
     protected <T> CompletableFuture<T> sendGetRequest(URI collectionUri, ResourceFormat format, Function<InputStream, T> bodyMapper) {
-        var req = HttpRequest.newBuilder()
-                .uri(collectionUri)
-                .GET()
-                .header(HttpHeaders.ACCEPT, format.getMimeType())
-                .build();
+        return CompletableFuture.supplyAsync(() -> {
+            HttpURLConnection connection = null;
+            try {
+                URL url = collectionUri.toURL();
+                connection = (HttpURLConnection) url.openConnection();
+                if (authenticator != null) {
+                    Authenticator.setDefault(authenticator);
+                }
+                connection.setRequestMethod("GET");
+                connection.setRequestProperty(HttpHeaders.ACCEPT, format.getMimeType());
 
-        var bodyHandler = (HttpResponse.BodyHandler<T>) resp -> {
-            var upstream = HttpResponse.BodySubscribers.ofByteArray();
-            return HttpResponse.BodySubscribers.mapping(upstream, body -> {
-                var is = new ByteArrayInputStream(body);
-                return bodyMapper.apply(is);
-            });
-        };
-
-        return http.sendAsync(req, bodyHandler)
-                .thenApply(resp -> {
-                    if (resp.statusCode() == 200)
-                        return resp.body();
-                    else
-                        throw new CompletionException("HTTP error " + resp.statusCode(), null);
-                });
+                int responseCode = connection.getResponseCode();
+                if (responseCode == 200) {
+                    try (InputStream is = connection.getInputStream()) {
+                        return bodyMapper.apply(is);
+                    }
+                } else {
+                    throw new CompletionException("HTTP error " + responseCode, null);
+                }
+            } catch (IOException e) {
+                throw new CompletionException(e);
+            } finally {
+                if (connection != null) {
+                    connection.disconnect();
+                }
+            }
+        });
     }
 
     protected CompletableFuture<String> sendPostRequest(URI collectionUri, ResourceFormat format, byte[] body) {
-        var req = HttpRequest.newBuilder()
-                .uri(collectionUri)
-                .POST(HttpRequest.BodyPublishers.ofByteArray(body))
-                .header(HttpHeaders.ACCEPT, ResourceFormat.JSON.getMimeType())
-                .header(HttpHeaders.CONTENT_TYPE, format.getMimeType())
-                .build();
+        return CompletableFuture.supplyAsync(() -> {
+            HttpURLConnection connection = null;
+            try {
+                URL url = collectionUri.toURL();
+                connection = (HttpURLConnection) url.openConnection();
+                if (authenticator != null) {
+                    Authenticator.setDefault(authenticator);
+                }
+                connection.setRequestMethod("POST");
+                connection.setRequestProperty(HttpHeaders.ACCEPT, ResourceFormat.JSON.getMimeType());
+                connection.setRequestProperty(HttpHeaders.CONTENT_TYPE, format.getMimeType());
+                connection.setDoOutput(true);
 
-        return http.sendAsync(req, HttpResponse.BodyHandlers.ofString())
-                .thenApply(resp -> {
-                    if (resp.statusCode() == 201 || resp.statusCode() == 303) {
-                        var location = resp.headers()
-                                .firstValue(HttpHeaders.LOCATION)
-                                .orElseThrow(() -> new IllegalStateException("Missing Location header in response"));
-                        return location.substring(location.lastIndexOf('/') + 1);
-                    } else if (resp.statusCode() == 200) {
-                        return resp.body();
-                    } else {
-                        throw new CompletionException(resp.body(), null);
+                try (OutputStream os = connection.getOutputStream()) {
+                    os.write(body);
+                }
+
+                int responseCode = connection.getResponseCode();
+                if (responseCode == 201 || responseCode == 303) {
+                    String location = connection.getHeaderField(HttpHeaders.LOCATION);
+                    if (location == null) {
+                        throw new IllegalStateException("Missing Location header in response");
                     }
-                });
+                    return location.substring(location.lastIndexOf('/') + 1);
+                } else if (responseCode == 200) {
+                    try (InputStream is = connection.getInputStream()) {
+                        return new String(is.readAllBytes());
+                    }
+                } else {
+                    throw new CompletionException("HTTP error " + responseCode, null);
+                }
+            } catch (IOException e) {
+                throw new CompletionException(e);
+            } finally {
+                if (connection != null) {
+                    connection.disconnect();
+                }
+            }
+        });
     }
 
     protected CompletableFuture<Integer> sendPutRequest(URI collectionUri, ResourceFormat format, byte[] body) {
-        var req = HttpRequest.newBuilder()
-                .uri(collectionUri)
-                .PUT(HttpRequest.BodyPublishers.ofByteArray(body))
-                .header(HttpHeaders.ACCEPT, ResourceFormat.JSON.getMimeType())
-                .header(HttpHeaders.CONTENT_TYPE, format.getMimeType())
-                .build();
+        return CompletableFuture.supplyAsync(() -> {
+            HttpURLConnection connection = null;
+            try {
+                URL url = collectionUri.toURL();
+                connection = (HttpURLConnection) url.openConnection();
+                if (authenticator != null) {
+                    Authenticator.setDefault(authenticator);
+                }
+                connection.setRequestMethod("PUT");
+                connection.setRequestProperty(HttpHeaders.ACCEPT, ResourceFormat.JSON.getMimeType());
+                connection.setRequestProperty(HttpHeaders.CONTENT_TYPE, format.getMimeType());
+                connection.setDoOutput(true);
 
-        return http.sendAsync(req, HttpResponse.BodyHandlers.ofString())
-                .thenApply(HttpResponse::statusCode);
+                try (OutputStream os = connection.getOutputStream()) {
+                    os.write(body);
+                }
+
+                return connection.getResponseCode();
+            } catch (IOException e) {
+                throw new CompletionException(e);
+            } finally {
+                if (connection != null) {
+                    connection.disconnect();
+                }
+            }
+        });
     }
 
     protected CompletableFuture<Integer> sendDeleteRequest(URI collectionUri) {
-        var req = HttpRequest.newBuilder()
-                .uri(collectionUri)
-                .DELETE()
-                .header(HttpHeaders.ACCEPT, ResourceFormat.JSON.getMimeType())
-                .build();
+        return CompletableFuture.supplyAsync(() -> {
+            HttpURLConnection connection = null;
+            try {
+                URL url = collectionUri.toURL();
+                connection = (HttpURLConnection) url.openConnection();
+                if (authenticator != null) {
+                    Authenticator.setDefault(authenticator);
+                }
+                connection.setRequestMethod("DELETE");
+                connection.setRequestProperty(HttpHeaders.ACCEPT, ResourceFormat.JSON.getMimeType());
 
-        return http.sendAsync(req, HttpResponse.BodyHandlers.ofString())
-                .thenApply(HttpResponse::statusCode);
+                return connection.getResponseCode();
+            } catch (IOException e) {
+                throw new CompletionException(e);
+            } finally {
+                if (connection != null) {
+                    connection.disconnect();
+                }
+            }
+        });
     }
 
     public static class ConSysApiClientExtrasBuilder extends BaseBuilder<ConSysApiClientExtras> {
-        HttpClient.Builder httpClientBuilder;
-
-
         ConSysApiClientExtrasBuilder(String endpoint) {
             this.instance = new ConSysApiClientExtras();
-            this.httpClientBuilder = HttpClient.newBuilder();
 
             try {
                 if (!endpoint.endsWith("/"))
@@ -536,20 +581,15 @@ public class ConSysApiClientExtras {
             }
         }
 
-        public ConSysApiClientExtras.ConSysApiClientExtrasBuilder useHttpClient(HttpClient http) {
-            instance.http = http;
-            return this;
-        }
-
         public ConSysApiClientExtras.ConSysApiClientExtrasBuilder simpleAuth(String user, char[] password) {
             if (!Strings.isNullOrEmpty(user)) {
                 var finalPwd = password != null ? password : new char[0];
-                httpClientBuilder.authenticator(new Authenticator() {
+                instance.authenticator = new Authenticator() {
                     @Override
                     protected PasswordAuthentication getPasswordAuthentication() {
                         return new PasswordAuthentication(user, finalPwd);
                     }
-                });
+                };
             }
 
             return this;
@@ -557,9 +597,6 @@ public class ConSysApiClientExtras {
 
         @Override
         public ConSysApiClientExtras build() {
-            if (instance.http == null)
-                instance.http = httpClientBuilder.build();
-
             return instance;
         }
     }
