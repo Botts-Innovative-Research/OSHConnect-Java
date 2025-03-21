@@ -45,6 +45,8 @@ public class OSHNode {
     private String authorizationToken;
     private String username;
     private String password;
+    private ConSysApiClient conSysApiClient;
+    private ConSysApiClientExtras conSysApiClientExtras;
 
     public OSHNode(String sensorHubRoot, boolean isSecure, String username, String password) {
         this(sensorHubRoot, isSecure, username, password, UUID.randomUUID());
@@ -258,6 +260,7 @@ public class OSHNode {
             this.username = null;
             this.password = null;
         }
+        createConSysApiClient();
     }
 
     /**
@@ -311,6 +314,12 @@ public class OSHNode {
         }
     }
 
+    /**
+     * Get a system by its UID.
+     *
+     * @param uid The UID of the system.
+     * @return The OSHSystem object or null if not found.
+     */
     private OSHSystem getSystemByUid(String uid) throws ExecutionException, InterruptedException {
         // Check if this UID already exists and return it
         for (OSHSystem system : systems) {
@@ -331,6 +340,12 @@ public class OSHNode {
         return null;
     }
 
+    /**
+     * Get a system by its ID.
+     *
+     * @param id The ID of the system.
+     * @return The OSHSystem object or null if not found.
+     */
     private OSHSystem getSystemById(String id) throws ExecutionException, InterruptedException {
         if (id == null || id.isEmpty()) return null;
 
@@ -346,22 +361,39 @@ public class OSHNode {
         return addSystem(result.get());
     }
 
+    /**
+     * Get the connected systems API client.
+     *
+     * @return The connected systems API client.
+     */
     public ConSysApiClient getConnectedSystemsApiClient() {
-        var conSysBuilder = ConSysApiClient
-                .newBuilder(Utilities.joinPath(getHTTPPrefix(), getApiEndpoint()));
-        if (authorizationToken != null) {
-            conSysBuilder.simpleAuth(username, password.toCharArray());
-        }
-        return conSysBuilder.build();
+        if (conSysApiClient == null)
+            createConSysApiClient();
+
+        return conSysApiClient;
     }
 
+    /**
+     * Get the connected systems API client.
+     *
+     * @return The connected systems API client.
+     */
     public ConSysApiClientExtras getConnectedSystemsApiClientExtras() {
-        var conSysBuilder = ConSysApiClientExtras
-                .newBuilder(Utilities.joinPath(getHTTPPrefix(), getApiEndpoint()));
+        if (conSysApiClientExtras == null)
+            createConSysApiClient();
+
+        return conSysApiClientExtras;
+    }
+
+    private void createConSysApiClient() {
+        var conSysBuilder = ConSysApiClient.newBuilder(Utilities.joinPath(getHTTPPrefix(), getApiEndpoint()));
+        var conSysExtrasBuilder = ConSysApiClientExtras.newBuilder(Utilities.joinPath(getHTTPPrefix(), getApiEndpoint()));
         if (authorizationToken != null) {
             conSysBuilder.simpleAuth(username, password.toCharArray());
+            conSysExtrasBuilder.simpleAuth(username, password.toCharArray());
         }
-        return conSysBuilder.build();
+        conSysApiClient = conSysBuilder.build();
+        conSysApiClientExtras = conSysExtrasBuilder.build();
     }
 
     /**
