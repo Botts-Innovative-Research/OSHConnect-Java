@@ -10,6 +10,7 @@ import org.sensorhub.oshconnect.net.APIResponse;
 import org.sensorhub.oshconnect.net.ConSysApiClientExtras;
 import org.sensorhub.oshconnect.net.Protocol;
 import org.sensorhub.oshconnect.notification.INotificationSystem;
+import org.sensorhub.oshconnect.util.SystemsQueryBuilder;
 import org.sensorhub.oshconnect.util.Utilities;
 
 import java.util.*;
@@ -77,19 +78,47 @@ public class OSHNode {
     }
 
     /**
-     * Discover systems belonging to this OpenSensorHub node.
+     * Query the OpenSensorHub node for systems.
+     * New systems will be added to the list of discovered systems,
+     * and existing systems will have their resources updated.
      *
-     * @return The list of systems.
+     * @return The list of discovered systems.
      */
     public List<OSHSystem> discoverSystems() throws ExecutionException, InterruptedException {
-        List<ISystemWithDesc> systemResources = getSystemResourcesFromServer();
+        return discoverSystems("");
+    }
+
+    /**
+     * Query the OpenSensorHub node for systems with a specific query.
+     * New systems will be added to the list of discovered systems,
+     * and existing systems will have their resources updated.
+     *
+     * @param query The query to filter the systems.
+     * @return The list of discovered systems matching the query.
+     */
+    public List<OSHSystem> discoverSystems(SystemsQueryBuilder query) throws ExecutionException, InterruptedException {
+        return discoverSystems(query.getQueryString());
+    }
+
+    /**
+     * Query the OpenSensorHub node for systems with a specific query.
+     * New systems will be added to the list of discovered systems,
+     * and existing systems will have their resources updated.
+     *
+     * @param query The query string to filter the systems.
+     * @return The list of discovered systems matching the query.
+     */
+    public List<OSHSystem> discoverSystems(String query) throws ExecutionException, InterruptedException {
+        List<ISystemWithDesc> systemResources = getConnectedSystemsApiClientExtras().getSystems(query).get();
+        List<OSHSystem> result = new ArrayList<>();
+
         for (ISystemWithDesc systemResource : systemResources) {
-            if (systems.stream().noneMatch(s -> s.getId().equals(systemResource.getId()))) {
-                addSystem(systemResource);
-            }
+            OSHSystem system = addOrUpdateSystem(systemResource);
+            if (system != null)
+                result.add(system);
         }
 
-        return getSystems();
+        return result;
     }
 
     /**
@@ -112,18 +141,30 @@ public class OSHNode {
     }
 
     /**
-     * Add a system to the list of systems and notify listeners.
+     * Add or update a system in the list of systems and notify listeners.
      *
      * @param systemResource The system resource.
-     * @return The OSHSystem object for the added system.
+     * @return The OSHSystem object for the added or updated system.
      */
-    private OSHSystem addSystem(ISystemWithDesc systemResource) {
+    private OSHSystem addOrUpdateSystem(ISystemWithDesc systemResource) {
         if (systemResource == null) return null;
 
-        OSHSystem system = new OSHSystem(this, systemResource);
-        systems.add(system);
-        notifySystemAdded(system);
-        return system;
+        var existingSystem = systems.stream()
+                .filter(s -> s.getId().equals(systemResource.getId()))
+                .findFirst()
+                .orElse(null);
+
+        if (existingSystem == null) {
+            // Create a new system
+            OSHSystem system = new OSHSystem(this, systemResource);
+            systems.add(system);
+            notifySystemAdded(system);
+            return system;
+        } else {
+            // Update the existing system
+            existingSystem.setSystemResource(systemResource);
+            return existingSystem;
+        }
     }
 
     /**
@@ -149,29 +190,19 @@ public class OSHNode {
     }
 
     /**
-     * Connect to the OpenSensorHub node and get a list of systems.
-     *
-     * @return The list of systems.
-     */
-    private List<ISystemWithDesc> getSystemResourcesFromServer() throws ExecutionException, InterruptedException {
-        var result = getConnectedSystemsApiClientExtras().getSystems();
-
-        return result.get();
-    }
-
-    /**
      * Discover data streams belonging to the systems of this OpenSensorHub node.
      * This method should be called after discoverSystems().
      * Note: This method may take a long time to complete if there are many data streams to discover;
      * it is recommended to call {@link OSHSystem#discoverDataStreams()} on individual systems containing the data streams of interest.
      *
-     * @return The list of data streams.
+     * @return The list of discovered data streams.
      */
     public List<OSHDataStream> discoverDataStreams() throws ExecutionException, InterruptedException {
+        List<OSHDataStream> dataStreams = new ArrayList<>();
         for (OSHSystem system : systems) {
-            system.discoverDataStreams();
+            dataStreams.addAll(system.discoverDataStreams());
         }
-        return getDataStreams();
+        return dataStreams;
     }
 
     /**
@@ -180,13 +211,14 @@ public class OSHNode {
      * Note: This method may take a long time to complete if there are many control streams to discover;
      * it is recommended to call {@link OSHSystem#discoverControlStreams()} on individual systems containing the control streams of interest.
      *
-     * @return The list of control streams.
+     * @return The list of discovered control streams.
      */
     public List<OSHControlStream> discoverControlStreams() throws ExecutionException, InterruptedException {
+        List<OSHControlStream> controlStreams = new ArrayList<>();
         for (OSHSystem system : systems) {
-            system.discoverControlStreams();
+            controlStreams.addAll(system.discoverControlStreams());
         }
-        return getControlStreams();
+        return controlStreams;
     }
 
     public String getHTTPPrefix() {
@@ -333,7 +365,7 @@ public class OSHNode {
         if (result != null) {
             var systemResource = result.get();
             if (systemResource != null) {
-                return addSystem(systemResource);
+                return addOrUpdateSystem(systemResource);
             }
         }
 
@@ -358,7 +390,7 @@ public class OSHNode {
 
         var result = getConnectedSystemsApiClient().getSystemById(id, ResourceFormat.JSON);
 
-        return addSystem(result.get());
+        return addOrUpdateSystem(result.get());
     }
 
     /**

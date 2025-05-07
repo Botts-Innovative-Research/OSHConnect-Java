@@ -1,7 +1,9 @@
 package org.sensorhub.oshconnect;
 
 import org.sensorhub.api.command.CommandStreamInfo;
+import org.sensorhub.api.command.ICommandStreamInfo;
 import org.sensorhub.api.data.DataStreamInfo;
+import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.system.ISystemWithDesc;
 import org.sensorhub.impl.service.consys.client.ConSysApiClient;
 import org.sensorhub.impl.service.consys.resource.ResourceFormat;
@@ -9,8 +11,11 @@ import org.sensorhub.oshconnect.constants.Service;
 import org.sensorhub.oshconnect.net.ConSysApiClientExtras;
 import org.sensorhub.oshconnect.notification.INotificationControlStream;
 import org.sensorhub.oshconnect.notification.INotificationDataStream;
+import org.sensorhub.oshconnect.util.ControlStreamsQueryBuilder;
+import org.sensorhub.oshconnect.util.DataStreamsQueryBuilder;
 import org.sensorhub.oshconnect.util.Utilities;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -33,43 +38,138 @@ public class OSHSystem {
     }
 
     /**
-     * Discover the data streams associated with the system.
+     * Query the node for the data streams associated with the system.
+     * New data streams will be added to the list of discovered data streams,
+     * and existing data streams will have their resources updated.
      *
-     * @return The list of data streams.
+     * @return The list of discovered data streams.
      */
     public List<OSHDataStream> discoverDataStreams() throws ExecutionException, InterruptedException {
-        var dataStreamIds = getConnectedSystemsApiClientExtras().getDataStreamIds(getId()).get();
-        for (var id : dataStreamIds) {
-            if (dataStreams.stream().noneMatch(ds -> ds.getId().equals(id))) {
-                var dataStreamResource = getConnectedSystemsApiClient().getDatastreamById(id, ResourceFormat.JSON, true).get();
-                if (dataStreamResource != null) {
-                    OSHDataStream dataStream = new OSHDataStream(this, id, dataStreamResource);
-                    dataStreams.add(dataStream);
-                    notifyDataStreamAdded(dataStream);
-                }
-            }
-        }
-        return getDataStreams();
+        return discoverDataStreams("");
     }
 
     /**
-     * Discover the control streams associated with the system.
+     * Query the node for the data streams associated with the system with a specific query.
+     * New data streams will be added to the list of discovered data streams,
+     * and existing data streams will have their resources updated.
      *
-     * @return The list of control streams.
+     * @param query The query to filter the data streams.
+     * @return The list of discovered data streams matching the query.
      */
-    public List<OSHControlStream> discoverControlStreams() throws ExecutionException, InterruptedException {
-        var controlStreamIds = getConnectedSystemsApiClientExtras().getControlStreamIds(getId()).get();
-        for (var id : controlStreamIds) {
-            if (controlStreams.stream().noneMatch(cs -> cs.getId().equals(id))) {
-                var controlStreamResource = getConnectedSystemsApiClient().getControlStreamById(id, ResourceFormat.JSON, true).get();
-                if (controlStreamResource != null) {
-                    OSHControlStream controlStream = new OSHControlStream(this, id, controlStreamResource);
-                    controlStreams.add(controlStream);
-                    notifyControlStreamAdded(controlStream);
-                }
+    public List<OSHDataStream> discoverDataStreams(DataStreamsQueryBuilder query) throws ExecutionException, InterruptedException {
+        return discoverDataStreams(query.getQueryString());
+    }
+
+    /**
+     * Query the node for the data streams associated with the system with a specific query.
+     * New data streams will be added to the list of discovered data streams,
+     * and existing data streams will have their resources updated.
+     *
+     * @param query The query to filter the data streams.
+     * @return The list of discovered data streams matching the query.
+     */
+    public List<OSHDataStream> discoverDataStreams(String query) throws ExecutionException, InterruptedException {
+        var dataStreamIds = getConnectedSystemsApiClientExtras().getDataStreamIds(getId(), query).get();
+        List<OSHDataStream> result = new ArrayList<>();
+
+        for (var id : dataStreamIds) {
+            var dataStreamResource = getConnectedSystemsApiClient().getDatastreamById(id, ResourceFormat.JSON, true).get();
+            var dataStream = addOrUpdateDataStream(id, dataStreamResource);
+            if (dataStream != null) {
+                result.add(dataStream);
             }
         }
-        return getControlStreams();
+        return result;
+    }
+
+    /**
+     * Add or update a data stream in the list of data streams and notify listeners.
+     *
+     * @param id                 The ID of the data stream.
+     * @param dataStreamResource The data stream properties.
+     * @return The added or updated data stream.
+     */
+    private OSHDataStream addOrUpdateDataStream(String id, IDataStreamInfo dataStreamResource) throws ExecutionException, InterruptedException {
+        if (dataStreamResource == null) return null;
+
+        var existingDataStream = dataStreams.stream()
+                .filter(ds -> ds.getId().equals(id))
+                .findFirst()
+                .orElse(null);
+
+        if (existingDataStream == null) {
+            OSHDataStream newDataStream = new OSHDataStream(this, id, dataStreamResource);
+            dataStreams.add(newDataStream);
+            notifyDataStreamAdded(newDataStream);
+            return newDataStream;
+        } else {
+            existingDataStream.setDataStreamResource(dataStreamResource);
+            return existingDataStream;
+        }
+    }
+
+    /**
+     * Query the node for the control streams associated with the system.
+     *
+     * @return The list of discovered control streams.
+     */
+    public List<OSHControlStream> discoverControlStreams() throws ExecutionException, InterruptedException {
+        return discoverControlStreams("");
+    }
+
+    /**
+     * Query the node for the control streams associated with the system with a specific query.
+     *
+     * @param query The query to filter the control streams.
+     * @return The list of discovered control streams matching the query.
+     */
+    public List<OSHControlStream> discoverControlStreams(ControlStreamsQueryBuilder query) throws ExecutionException, InterruptedException {
+        return discoverControlStreams(query.getQueryString());
+    }
+
+    /**
+     * Query the node for the control streams associated with the system with a specific query.
+     *
+     * @return The list of discovered control streams matching the query.
+     */
+    public List<OSHControlStream> discoverControlStreams(String query) throws ExecutionException, InterruptedException {
+        var controlStreamIds = getConnectedSystemsApiClientExtras().getControlStreamIds(getId(), query).get();
+        List<OSHControlStream> result = new ArrayList<>();
+        for (var id : controlStreamIds) {
+            var controlStreamResource = getConnectedSystemsApiClient().getControlStreamById(id, ResourceFormat.JSON, true).get();
+            var controlStream = addOrUpdateControlStream(id, controlStreamResource);
+            if (controlStream != null) {
+                result.add(controlStream);
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * Add or update a control stream in the list of control streams and notify listeners.
+     *
+     * @param id                    The ID of the control stream.
+     * @param controlStreamResource The control stream properties.
+     * @return The added or updated control stream.
+     */
+    private OSHControlStream addOrUpdateControlStream(String id, ICommandStreamInfo controlStreamResource) {
+        if (controlStreamResource == null) return null;
+
+        var existingControlStream = controlStreams.stream()
+                .filter(cs -> cs.getId().equals(id))
+                .findFirst()
+                .orElse(null);
+
+        if (existingControlStream == null) {
+            OSHControlStream newControlStream = new OSHControlStream(this, id, controlStreamResource);
+            controlStreams.add(newControlStream);
+            notifyControlStreamAdded(newControlStream);
+            return newControlStream;
+        } else {
+            existingControlStream.setControlStreamResource(controlStreamResource);
+            return existingControlStream;
+        }
     }
 
     /**
@@ -325,5 +425,13 @@ public class OSHSystem {
      */
     public ISystemWithDesc getSystemResource() {
         return systemResource;
+    }
+
+    /**
+     * Set the system resource.
+     * Used by the OSHNode to update the resource when it is rediscovered.
+     */
+    protected void setSystemResource(ISystemWithDesc systemResource) {
+        this.systemResource = systemResource;
     }
 }

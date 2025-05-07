@@ -57,7 +57,20 @@ public class ConSysApiClientExtras {
      * @return A list of systems.
      */
     public CompletableFuture<List<ISystemWithDesc>> getSystems() {
-        return sendGetRequest(endpoint.resolve(SYSTEMS_COLLECTION), ResourceFormat.JSON, body -> {
+        return getSystems(null);
+    }
+
+    /**
+     * Get the systems of the OpenSensorHub node with a query string.
+     *
+     * @param queryString The query string to include in the request.
+     * @return A list of systems matching the query string.
+     */
+    public CompletableFuture<List<ISystemWithDesc>> getSystems(String queryString) {
+        if (queryString == null)
+            queryString = "";
+
+        return sendGetRequest(endpoint.resolve(SYSTEMS_COLLECTION + queryString), ResourceFormat.JSON, body -> {
             try {
                 var ctx = new RequestContext(body);
 
@@ -85,7 +98,21 @@ public class ConSysApiClientExtras {
      * @return A list of data stream IDs.
      */
     public CompletableFuture<List<String>> getDataStreamIds(String systemID) {
-        return sendGetRequest(endpoint.resolve(SYSTEMS_COLLECTION + "/" + systemID + "/" + DATASTREAMS_COLLECTION), ResourceFormat.JSON, body -> {
+        return getDataStreamIds(systemID, null);
+    }
+
+    /**
+     * Get the data stream IDs for a system with a query string.
+     *
+     * @param systemID    The ID of the system.
+     * @param queryString The query string to include in the request.
+     * @return A list of data stream IDs matching the query string.
+     */
+    public CompletableFuture<List<String>> getDataStreamIds(String systemID, String queryString) {
+        if (queryString == null)
+            queryString = "";
+
+        return sendGetRequest(endpoint.resolve(SYSTEMS_COLLECTION + "/" + systemID + "/" + DATASTREAMS_COLLECTION + queryString), ResourceFormat.JSON, body -> {
             try {
                 var ctx = new RequestContext(body);
 
@@ -276,7 +303,21 @@ public class ConSysApiClientExtras {
      * @return A list of control stream IDs.
      */
     public CompletableFuture<List<String>> getControlStreamIds(String systemID) {
-        return sendGetRequest(endpoint.resolve(SYSTEMS_COLLECTION + "/" + systemID + "/" + CONTROLS_COLLECTION), ResourceFormat.JSON, body -> {
+        return getControlStreamIds(systemID, null);
+    }
+
+    /**
+     * Get the control stream IDs for a system with a query string.
+     *
+     * @param systemID    The ID of the system.
+     * @param queryString The query string to include in the request.
+     * @return A list of control stream IDs matching the query string.
+     */
+    public CompletableFuture<List<String>> getControlStreamIds(String systemID, String queryString) {
+        if (queryString == null)
+            queryString = "";
+
+        return sendGetRequest(endpoint.resolve(SYSTEMS_COLLECTION + "/" + systemID + "/" + CONTROLS_COLLECTION + queryString), ResourceFormat.JSON, body -> {
             try {
                 var ctx = new RequestContext(body);
 
@@ -413,8 +454,6 @@ public class ConSysApiClientExtras {
     public CompletableFuture<List<CommandData>> getCommands(String controlStreamId, ICommandStreamInfo commandStreamInfo, String queryString) {
         if (queryString == null)
             queryString = "";
-        if (!queryString.isEmpty() && !queryString.startsWith("?"))
-            queryString = "?" + queryString;
 
         String url = CONTROLS_COLLECTION + "/" + controlStreamId + "/" + COMMANDS_COLLECTION + queryString;
 

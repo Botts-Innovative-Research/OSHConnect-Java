@@ -3,6 +3,7 @@ package org.sensorhub.oshconnect;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.sensorhub.oshconnect.datamodels.ObservationData;
+import org.sensorhub.oshconnect.util.ObservationsQueryBuilder;
 import org.vast.util.TimeExtent;
 
 import java.util.List;
@@ -107,7 +108,8 @@ class OSHDataStreamTest extends TestBase {
         dataStream.pushObservation(observationData3);
 
         TimeExtent observation2Time = TimeExtent.period(observationData2.getPhenomenonTime(), observationData2.getPhenomenonTime());
-        List<ObservationData> observations = dataStream.getObservations(null, observation2Time, null, null, null, null);
+        ObservationsQueryBuilder queryBuilder = new ObservationsQueryBuilder().phenomenonTime(observation2Time);
+        List<ObservationData> observations = dataStream.getObservations(queryBuilder);
         assertEquals(1, observations.size());
         verifyObservation(observations.get(0), observationData2.getPhenomenonTime(), 1.0, 2.0, 3.0);
     }
@@ -124,7 +126,8 @@ class OSHDataStreamTest extends TestBase {
         dataStream.pushObservation(observationData3);
 
         TimeExtent observation2Time = TimeExtent.beginAt(observationData2.getPhenomenonTime());
-        List<ObservationData> observations = dataStream.getObservations(null, observation2Time, null, null, null, null);
+        ObservationsQueryBuilder queryBuilder = new ObservationsQueryBuilder().phenomenonTime(observation2Time);
+        List<ObservationData> observations = dataStream.getObservations(queryBuilder);
         assertEquals(2, observations.size());
         verifyObservation(observations.get(0), observationData2.getPhenomenonTime(), 1.0, 2.0, 3.0);
         verifyObservation(observations.get(1), observationData3.getPhenomenonTime(), 1.1, 2.2, 3.3);
@@ -138,7 +141,8 @@ class OSHDataStreamTest extends TestBase {
             dataStream.pushObservation(newObservationData(newDataBlockWithData()));
         }
 
-        List<ObservationData> observations = dataStream.getObservations(null, null, null, null, null, limit);
+        ObservationsQueryBuilder queryBuilder = new ObservationsQueryBuilder().limit(limit);
+        List<ObservationData> observations = dataStream.getObservations(queryBuilder);
         assertEquals(limit, observations.size());
     }
 }

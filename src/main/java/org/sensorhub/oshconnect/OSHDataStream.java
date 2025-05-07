@@ -6,11 +6,9 @@ import org.sensorhub.impl.service.consys.resource.ResourceFormat;
 import org.sensorhub.oshconnect.constants.Service;
 import org.sensorhub.oshconnect.datamodels.ObservationData;
 import org.sensorhub.oshconnect.net.ConSysApiClientExtras;
-import org.sensorhub.oshconnect.util.QueryStringBuilder;
+import org.sensorhub.oshconnect.util.ObservationsQueryBuilder;
 import org.sensorhub.oshconnect.util.Utilities;
-import org.vast.util.TimeExtent;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
@@ -43,34 +41,25 @@ public class OSHDataStream implements OSHStream {
      * @return A list of ObservationData objects.
      */
     public List<ObservationData> getObservations() throws ExecutionException, InterruptedException {
-        return getConnectedSystemsApiClientExtras().getObservations(id, dataStreamResource).get();
+        return getObservations("");
     }
 
     /**
-     * Returns the latest observations of this data stream with the specified parameters.
-     * Any parameter that is null or empty will be ignored.
+     * Query the node for the latest observations of this data stream with the specified parameters.
      *
-     * @param id               List of resource local IDs or unique IDs (URI).
-     *                         Only resources that have one of the provided identifiers are selected.
-     * @param phenomenonTime   Only resources with a phenomenonTime property that intersects the value of the phenomenonTime parameter are selected.
-     * @param resultTime       Only resources with a phenomenonTime property that intersects the value of the phenomenonTime parameter are selected.
-     * @param foi              List of feature local IDs or unique IDs (URI).
-     *                         Only resources that are associated with a feature of interest that has one of the provided identifiers are selected.
-     * @param observedProperty List of property local IDs or unique IDs (URI).
-     *                         Only resources that are associated with an observable property that has one of the provided identifiers are selected.
-     * @param limit            This parameter limits the number of items that are presented in the response document.
      * @return A list of ObservationData objects.
      */
-    public List<ObservationData> getObservations(List<String> id, TimeExtent phenomenonTime, TimeExtent resultTime, List<String> foi, List<String> observedProperty, Integer limit) throws ExecutionException, InterruptedException {
-        QueryStringBuilder queryString = QueryStringBuilder.fromMap(new HashMap<>())
-                .addParameter("id", id)
-                .addParameter("phenomenonTime", phenomenonTime)
-                .addParameter("resultTime", resultTime)
-                .addParameter("foi", foi)
-                .addParameter("observedProperty", observedProperty)
-                .addParameter("limit", limit);
+    public List<ObservationData> getObservations(ObservationsQueryBuilder query) throws ExecutionException, InterruptedException {
+        return getObservations(query.getQueryString());
+    }
 
-        return getConnectedSystemsApiClientExtras().getObservations(this.id, dataStreamResource, queryString.toString()).get();
+    /**
+     * Query the node the latest observations of this data stream with the specified parameters.
+     *
+     * @return A list of ObservationData objects.
+     */
+    public List<ObservationData> getObservations(String query) throws ExecutionException, InterruptedException {
+        return getConnectedSystemsApiClientExtras().getObservations(this.id, dataStreamResource, query).get();
     }
 
     /**
@@ -141,5 +130,13 @@ public class OSHDataStream implements OSHStream {
 
     public IDataStreamInfo getDataStreamResource() {
         return dataStreamResource;
+    }
+
+    /**
+     * Sets the data stream resource.
+     * Used by OSHSystem to update the resource when it is rediscovered.
+     */
+    protected void setDataStreamResource(IDataStreamInfo dataStreamResource) {
+        this.dataStreamResource = dataStreamResource;
     }
 }

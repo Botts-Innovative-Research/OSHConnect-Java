@@ -110,4 +110,12 @@ public class OSHControlStream implements OSHStream {
     public ICommandStreamInfo getControlStreamResource() {
         return controlStreamResource;
     }
+
+    /**
+     * Sets the control stream resource.
+     * Used by OSHSystem to update the resource when it is rediscovered.
+     */
+    protected void setControlStreamResource(ICommandStreamInfo controlStreamResource) {
+        this.controlStreamResource = controlStreamResource;
+    }
 }

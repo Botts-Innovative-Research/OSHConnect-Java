@@ -3,6 +3,7 @@ package org.sensorhub.oshconnect.util;
 import org.vast.util.TimeExtent;
 
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,7 +20,6 @@ import java.util.Map;
 public class QueryStringBuilder {
     private static final Instant MIN_TIME = Instant.parse("0000-01-01T00:00:00Z");
     private static final Instant MAX_TIME = Instant.parse("9999-12-31T23:59:59.999Z");
-    private static final String SPECIAL_VALUE_NOW = "now";
 
     /**
      * The map of parameters.
@@ -42,6 +42,24 @@ public class QueryStringBuilder {
         return builder;
     }
 
+    /**
+     * Convert a variable number of elements to a list.
+     *
+     * @param elements The elements to convert.
+     * @return The list of elements.
+     */
+    @SafeVarargs
+    protected static <T> List<T> convertToList(T... elements) {
+        return Arrays.asList(elements);
+    }
+
+    /**
+     * Add a parameter to the query string.
+     * If the key or value is null or empty, the parameter will not be added.
+     *
+     * @param key   The name of the parameter.
+     * @param value The value of the parameter.
+     */
     public QueryStringBuilder addParameter(String key, String value) {
         if (key == null || key.isEmpty()) return this;
         if (value == null || value.isEmpty()) return this;
@@ -50,31 +68,34 @@ public class QueryStringBuilder {
     }
 
     /**
+     * Add a parameter to the query string.
+     * The value will be converted to a string using its {@link Object#toString()} method.
+     * If the value is null, the parameter will not be added.
+     *
+     * @param key   The name of the parameter.
+     * @param value The value of the parameter.
+     */
+    public <T> QueryStringBuilder addParameter(String key, T value) {
+        if (value != null)
+            addParameter(key, value.toString());
+        return this;
+    }
+
+    /**
      * Add a parameter with a list of values. The values will be joined with commas.
      */
-    public QueryStringBuilder addParameter(String key, List<String> values) {
-        if (values == null || values.isEmpty()) return this;
-        return addParameter(key, String.join(",", values));
-    }
-
-    public QueryStringBuilder addParameter(String key, Integer value) {
-        return value == null ? this : addParameter(key, Integer.toString(value));
-    }
-
-    public QueryStringBuilder addParameter(String key, Double value) {
-        return value == null ? this : addParameter(key, Double.toString(value));
-    }
-
-    public QueryStringBuilder addParameter(String key, Boolean value) {
-        return value == null ? this : addParameter(key, Boolean.toString(value));
-    }
-
-    public QueryStringBuilder addParameter(String key, Long value) {
-        return value == null ? this : addParameter(key, Long.toString(value));
-    }
-
-    public QueryStringBuilder addParameter(String key, Float value) {
-        return value == null ? this : addParameter(key, Float.toString(value));
+    public <T> QueryStringBuilder addParameter(String key, List<T> values) {
+        if (values != null && !values.isEmpty()) {
+            StringBuilder csv = new StringBuilder();
+            for (T value : values) {
+                if (value == null) continue;
+                csv.append(value);
+                csv.append(',');
+            }
+            csv.deleteCharAt(csv.length() - 1); // Remove trailing comma
+            addParameter(key, csv.toString());
+        }
+        return this;
     }
 
     /**
@@ -89,8 +110,8 @@ public class QueryStringBuilder {
     public QueryStringBuilder addParameter(String key, TimeExtent value) {
         if (value == null) return this;
 
-        if (value.begin() == null && value.end() == null) {
-            return addParameter(key, SPECIAL_VALUE_NOW);
+        if (value.isNow()) {
+            addParameter(key, TimeExtent.SPECIAL_VALUE_NOW);
         } else if (value.isInstant()) {
             return addParameter(key, value.begin().toString());
         } else {
@@ -99,6 +120,8 @@ public class QueryStringBuilder {
                     formatInstant(value.end());
             return addParameter(key, timeExtent);
         }
+
+        return this;
     }
 
     public QueryStringBuilder addParameter(String key, Instant value) {
@@ -133,17 +156,16 @@ public class QueryStringBuilder {
 
     /**
      * Format an instant as a string for use in a time extent parameter.
-     * Dates before 0000-01-01T00:00:00Z are clamped to 0000-01-01T00:00:00Z and
-     * dates after 9999-12-31T23:59:59.999Z are clamped to 9999-12-31T23:59:59.999Z.
+     * Dates before 0000-01-01T00:00:00Z and dates after 9999-12-31T23:59:59.999Z are considered unbounded.
      * This is a workaround for the fact that OSH throws an error if the date is outside this range.
      */
     private String formatInstant(Instant instant) {
         if (instant == null) {
-            return SPECIAL_VALUE_NOW;
+            return TimeExtent.SPECIAL_VALUE_NOW;
         } else if (instant.isBefore(MIN_TIME)) {
-            return MIN_TIME.toString();
+            return TimeExtent.SPECIAL_VALUE_UNBOUNDED;
         } else if (instant.isAfter(MAX_TIME)) {
-            return MAX_TIME.toString();
+            return TimeExtent.SPECIAL_VALUE_UNBOUNDED;
         }
         return instant.toString();
     }
