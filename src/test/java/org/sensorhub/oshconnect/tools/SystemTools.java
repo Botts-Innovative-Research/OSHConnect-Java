@@ -1,5 +1,6 @@
 package org.sensorhub.oshconnect.tools;
 
+import net.opengis.gml.v32.impl.GMLFactory;
 import org.sensorhub.impl.service.consys.sensorml.SystemAdapter;
 import org.vast.sensorML.SMLHelper;
 
@@ -17,6 +18,7 @@ public class SystemTools {
                 .uniqueID(SENSOR_UID)
                 .name(name)
                 .description(description)
+                .location(new GMLFactory().newPoint(34.710127, -86.734610))
                 .build();
 
         return new SystemAdapter(sys);

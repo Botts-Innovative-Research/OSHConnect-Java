@@ -24,7 +24,6 @@ class OSHSystemTest extends TestBase {
     void createSystem() {
         assertNotNull(system);
         assertNotNull(system.getSystemResource());
-        System.out.println("System: " + system.getSystemResource().getGeometry());
     }
 
     @Test
