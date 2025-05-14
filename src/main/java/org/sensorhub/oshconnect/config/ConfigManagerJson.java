@@ -1,22 +1,12 @@
 package org.sensorhub.oshconnect.config;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonDeserializer;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonSerializer;
-
+import com.google.gson.*;
 import org.sensorhub.oshconnect.OSHConnect;
+import org.sensorhub.oshconnect.OSHNode;
+import org.sensorhub.oshconnect.OSHSystem;
 import org.sensorhub.oshconnect.notification.INotificationSystem;
-import org.sensorhub.oshconnect.oshdatamodels.OSHNode;
-import org.sensorhub.oshconnect.oshdatamodels.OSHSystem;
 
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.Reader;
-import java.io.Writer;
+import java.io.*;
 import java.util.HashSet;
 import java.util.List;
 
@@ -42,6 +32,16 @@ public class ConfigManagerJson implements ConfigManager {
     }
 
     /**
+     * Import the configuration from a JSON file.
+     */
+    @Override
+    public void importConfig(File file) throws IOException {
+        try (FileReader reader = new FileReader(file)) {
+            importConfig(reader);
+        }
+    }
+
+    /**
      * Called by {@link #exportConfig(File)} and used in unit tests.
      */
     void exportConfig(Writer writer) {
@@ -59,16 +59,6 @@ public class ConfigManagerJson implements ConfigManager {
                 .create();
 
         gson.toJson(nodes, writer);
-    }
-
-    /**
-     * Import the configuration from a JSON file.
-     */
-    @Override
-    public void importConfig(File file) throws IOException {
-        try (FileReader reader = new FileReader(file)) {
-            importConfig(reader);
-        }
     }
 
     /**

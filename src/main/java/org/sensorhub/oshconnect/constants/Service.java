@@ -5,31 +5,24 @@ package org.sensorhub.oshconnect.constants;
  */
 public enum Service {
     /**
-     * Sensor Web API
+     * Connected Systems API
      */
     API("api"),
-    /**
-     * Sensor Observation Service
-     */
-    SOS("sos"),
-    /**
-     * Sensor Planning Service
-     */
-    SPS("sps"),
-    /**
-     * Visualization Recommendation Service
-     */
-    DISCOVERY("discovery");
+    SYSTEMS("systems"),
+    DATASTREAMS("datastreams"),
+    CONTROLSTREAMS("controlstreams"),
+    OBSERVATIONS("observations"),
+    COMMANDS("commands");
 
     /**
-     * String representing the endpoint where the service is supported on the server
+     * String representing the endpoint where the service is supported on the server.
      */
     private final String endpoint;
 
     /**
      * Constructor
      *
-     * @param endpoint String representing the endpoint where the service is supported on the server
+     * @param endpoint String representing the endpoint where the service is supported on the server.
      */
     Service(String endpoint) {
         this.endpoint = endpoint;
@@ -37,6 +30,13 @@ public enum Service {
 
     @Override
     public String toString() {
+        return getEndpoint();
+    }
+
+    /**
+     * String representing the endpoint where the service is supported on the server.
+     */
+    public String getEndpoint() {
         return endpoint;
     }
 }

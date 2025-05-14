@@ -1,30 +1,59 @@
 package org.sensorhub.oshconnect.net;
 
 import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 
+import java.util.Collections;
 import java.util.List;
 
-import lombok.Getter;
+public class APIResponse {
+    private final int responseCode;
+    private final String responseMessage;
+    private final String responseBody;
 
-@Getter
-public class APIResponse<T> {
-    private final List<T> items;
-
-    public APIResponse(List<T> items) {
-        this.items = items;
+    public APIResponse(int responseCode, String responseMessage, String responseBody) {
+        this.responseCode = responseCode;
+        this.responseMessage = responseMessage;
+        this.responseBody = responseBody;
     }
 
-    public static <T> APIResponse<T> fromJson(String json, Class<T> clazz) {
-        return new Gson().fromJson(json, TypeToken.getParameterized(APIResponse.class, clazz).getType());
+    /**
+     * Returns true if the response code is in the 200 range.
+     */
+    public boolean isSuccessful() {
+        return responseCode >= 200 && responseCode < 300;
     }
 
-    public String toJson() {
-        return new Gson().toJson(this);
+    /**
+     * Returns the response body as the specified type.
+     */
+    public <T> T getItem(Class<T> clazz) {
+        //check that the first character of the response body is a '{' to avoid a JsonSyntaxException
+        if (responseBody.charAt(0) != '{') {
+            return null;
+        }
+        return new Gson().fromJson(responseBody, clazz);
     }
 
-    @Override
-    public String toString() {
-        return toJson();
+    /**
+     * Returns the response body as a list of the specified type.
+     */
+    public <T> List<T> getItems(Class<T> clazz) {
+        if (responseBody.charAt(0) != '{') {
+            return Collections.emptyList();
+        }
+        APIResponseItems<T> apiResponse = APIResponseItems.fromJson(responseBody, clazz);
+        return apiResponse.getItems();
+    }
+
+    public int getResponseCode() {
+        return responseCode;
+    }
+
+    public String getResponseMessage() {
+        return responseMessage;
+    }
+
+    public String getResponseBody() {
+        return responseBody;
     }
 }

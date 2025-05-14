@@ -1,19 +1,15 @@
 package org.sensorhub.oshconnect;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.sensorhub.oshconnect.TestConstants.IS_SECURE;
-import static org.sensorhub.oshconnect.TestConstants.PASSWORD;
-import static org.sensorhub.oshconnect.TestConstants.SENSOR_HUB_ROOT;
-import static org.sensorhub.oshconnect.TestConstants.USERNAME;
-
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.sensorhub.oshconnect.oshdatamodels.OSHNode;
 
 import java.util.List;
 import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.sensorhub.oshconnect.TestConstants.*;
 
 class NodeManagerTest {
     private OSHConnect oshConnect;

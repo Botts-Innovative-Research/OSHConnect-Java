@@ -1,0 +1,321 @@
+package org.sensorhub.oshconnect.net.websocket;
+
+import org.json.JSONObject;
+import org.sensorhub.oshconnect.OSHStream;
+import org.sensorhub.oshconnect.net.RequestFormat;
+import org.sensorhub.oshconnect.util.QueryStringBuilder;
+import org.vast.util.TimeExtent;
+
+import java.nio.ByteBuffer;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+/**
+ * Listener for a single data stream.
+ * Override the {@link #onStreamUpdate(StreamEventArgs)} method to handle the data received from the data stream.
+ * To listen to multiple data streams, use a {@link StreamHandler}.
+ */
+public abstract class StreamListener implements StreamEventListener {
+    private static final String DATE_REGEX_TEXT = "\\d{4}-\\d{2}-\\d{2}T\\d{2}:";
+    private static final String DATE_REGEX_XML = "<[^>]+>(\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d+Z)</[^>]+>";
+    /**
+     * The data stream being listened to.
+     */
+    private final OSHStream dataStream;
+    private final List<StatusListener> statusListeners = new ArrayList<>();
+    private boolean isShutdown = false;
+    /**
+     * The WebSocket connection to the data stream.
+     */
+    private WebSocketConnection webSocketConnection;
+    /**
+     * The format of the request.
+     * If null, the format will not be specified in the request, i.e., the data will be received in the default format.
+     */
+    private RequestFormat requestFormat;
+    /**
+     * The time period for the data stream.
+     * If null, the time period will not be specified in the request, i.e., will listen to the data stream in real-time.
+     */
+    private TimeExtent timeExtent;
+    /**
+     * The replay speed for the data stream.
+     * Only applicable for historical data streams.
+     * 1.0 is the default speed, 0.1 is 10 times slower, 10.0 is 10 times faster.
+     * Zero or negative values will result in no data being received.
+     */
+    private double replaySpeed = 1;
+
+    /**
+     * Creates a new data stream listener for the specified data stream.
+     * By default, the listener will listen to the data stream in real-time.
+     * To listen to historical data, use the setTimeExtent method.
+     *
+     * @param dataStream the data stream to listen to.
+     */
+    protected StreamListener(OSHStream dataStream) {
+        this.dataStream = dataStream;
+    }
+
+    /**
+     * Called when the data stream receives an update.
+     * Parses the data and calls {@link #onStreamUpdate(StreamEventArgs)}.
+     *
+     * @param data the data received from the data stream.
+     */
+    public void onStreamUpdate(byte[] data) {
+        RequestFormat format = determineRequestFormat(data);
+        long timestamp = determineTimestamp(format, data);
+
+        onStreamUpdate(new StreamEventArgs(timestamp, data, format, dataStream));
+    }
+
+    /**
+     * Called when the data stream receives an update.
+     * Override this method to handle the data received from the data stream.
+     *
+     * @param args the arguments of the event.
+     */
+    @Override
+    public void onStreamUpdate(StreamEventArgs args) {
+        // Default implementation does nothing
+    }
+
+    /**
+     * Connects to the data stream using the specified request format, replay speed, and time period.
+     */
+    public void connect() {
+        if (getStatus() == StreamStatus.SHUTDOWN) {
+            throw new IllegalStateException("Listener has been shut down.");
+        }
+
+        disconnect();
+        String request = buildRequestString();
+        webSocketConnection = new WebSocketConnection(this, request);
+        webSocketConnection.addStatusListener(this::updateStatus);
+        webSocketConnection.connect();
+    }
+
+    /**
+     * Disconnects from the data stream.
+     */
+    public void disconnect() {
+        if (webSocketConnection != null) {
+            webSocketConnection.disconnect();
+            webSocketConnection = null;
+        }
+    }
+
+    /**
+     * Shuts down the data stream listener.
+     * Disconnects from the data stream and prevents further connections.
+     */
+    public void shutdown() {
+        isShutdown = true;
+        disconnect();
+        updateStatus(StreamStatus.SHUTDOWN);
+    }
+
+    /**
+     * Reconnects to the data stream.
+     * Used when the request format, replay speed, or time period is changed to update the connection.
+     */
+    private void reconnectIfConnected() {
+        if (webSocketConnection != null) {
+            connect();
+        }
+    }
+
+    /**
+     * Determines the format of the request based on the data.
+     *
+     * @param data the data received from the data stream.
+     * @return the format of the request.
+     */
+    private RequestFormat determineRequestFormat(byte[] data) {
+        if (requestFormat != null) {
+            return requestFormat;
+        }
+
+        if (data[0] == '{') {
+            return RequestFormat.JSON;
+        } else if (data[0] == '<') {
+            return RequestFormat.SWE_XML;
+        } else {
+            // Check if the first 14 characters are a date.
+            byte[] first14Bytes = new byte[14];
+            System.arraycopy(data, 0, first14Bytes, 0, 14);
+            String dataString = new String(first14Bytes);
+            if (dataString.length() > 14 && dataString.substring(0, 14).matches(DATE_REGEX_TEXT)) {
+                return RequestFormat.PLAIN_TEXT;
+            } else {
+                return RequestFormat.SWE_BINARY;
+            }
+        }
+    }
+
+    /**
+     * Determines the timestamp of the data.
+     *
+     * @param format the format of the request.
+     * @param data   the data received from the data stream.
+     * @return the timestamp of the data.
+     */
+    private long determineTimestamp(RequestFormat format, byte[] data) {
+        if (format == RequestFormat.JSON || format == RequestFormat.OM_JSON || format == RequestFormat.SWE_JSON) {
+            JSONObject json = new JSONObject(new String(data));
+            String phenomenonTime = json.getString("phenomenonTime");
+            return Instant.parse(phenomenonTime).toEpochMilli();
+        } else if (format == RequestFormat.SWE_XML) {
+            // Get the timestamp from the first date in the XML
+            String xml = new String(data);
+
+            Pattern pattern = Pattern.compile(DATE_REGEX_XML);
+            Matcher matcher = pattern.matcher(xml);
+
+            if (matcher.find()) {
+                String date = matcher.group(1);
+                return Instant.parse(date).toEpochMilli();
+            }
+        } else if (format == RequestFormat.SWE_CSV || format == RequestFormat.PLAIN_TEXT) {
+            // Get the timestamp from the first element of the CSV
+            String text = new String(data);
+            String[] parts = text.split(",");
+            return Instant.parse(parts[0]).toEpochMilli();
+        } else if (format == RequestFormat.SWE_BINARY) {
+            // Get the timestamp from the first 8 bytes of the binary data
+            byte[] timestampBytes = Arrays.copyOfRange(data, 0, 8);
+            ByteBuffer buffer = ByteBuffer.wrap(timestampBytes);
+            double timestampDouble = buffer.getDouble();
+            return (long) (timestampDouble * 1000);
+        }
+
+        return -1;
+    }
+
+    /**
+     * Builds the request string for the data stream.
+     *
+     * @return the request string.
+     */
+    private String buildRequestString() {
+        QueryStringBuilder queryString = new QueryStringBuilder();
+        if (requestFormat != null) {
+            queryString.addParameter("format", requestFormat.getMimeType());
+        }
+        if (timeExtent != null && !timeExtent.isNow()) {
+            queryString.addParameter("phenomenonTime", timeExtent);
+            queryString.addParameter("replaySpeed", replaySpeed);
+        }
+
+        return dataStream.getEndpoint() + queryString;
+    }
+
+    public StreamStatus getStatus() {
+        if (isShutdown) {
+            return StreamStatus.SHUTDOWN;
+        } else if (webSocketConnection == null) {
+            return StreamStatus.DISCONNECTED;
+        } else {
+            return webSocketConnection.getStatus();
+        }
+    }
+
+    public void addStatusListener(StatusListener listener) {
+        statusListeners.add(listener);
+    }
+
+    public void removeStatusListener(StatusListener listener) {
+        statusListeners.remove(listener);
+    }
+
+    private void updateStatus(StreamStatus newStatus) {
+        for (StatusListener listener : statusListeners) {
+            listener.onStatusChanged(newStatus);
+        }
+    }
+
+    /**
+     * The data stream being listened to.
+     */
+    public OSHStream getDataStream() {
+        return dataStream;
+    }
+
+    /**
+     * The WebSocket connection to the data stream.
+     */
+    public WebSocketConnection getWebSocketConnection() {
+        return webSocketConnection;
+    }
+
+    /**
+     * The format of the request.
+     * If null, the format will not be specified in the request, i.e., the data will be received in the default format.
+     */
+    public RequestFormat getRequestFormat() {
+        return requestFormat;
+    }
+
+    /**
+     * Sets the format of the request.
+     * If null, the format will not be specified in the request, i.e., the data will be received in the default format.
+     * Calling this method will reconnect to the data stream if it is already connected.
+     *
+     * @param requestFormat the format of the request.
+     *                      Set to null to remove the previously set format.
+     */
+    public void setRequestFormat(RequestFormat requestFormat) {
+        this.requestFormat = requestFormat;
+        reconnectIfConnected();
+    }
+
+    /**
+     * The time period for the data stream.
+     * If null, the time period will not be specified in the request, i.e., will listen to the data stream in real-time.
+     */
+    public TimeExtent getTimeExtent() {
+        return timeExtent;
+    }
+
+    /**
+     * Sets the time period for the data stream.
+     * If null, the time period will not be specified in the request, i.e., will listen to the data stream in real-time.
+     * Calling this method will reconnect to the data stream if it is already connected.
+     *
+     * @param timeExtent the time period of the request.
+     *                   Set to null to remove the previously set time period.
+     */
+    public void setTimeExtent(TimeExtent timeExtent) {
+        this.timeExtent = timeExtent;
+        reconnectIfConnected();
+    }
+
+    /**
+     * The replay speed for the data stream.
+     * Only applicable for historical data streams.
+     * 1.0 is the default speed, 0.1 is 10 times slower, 10.0 is 10 times faster.
+     * Zero or negative values will result in no data being received.
+     */
+    public double getReplaySpeed() {
+        return replaySpeed;
+    }
+
+    /**
+     * Sets the replay speed for the data stream.
+     * Only applicable for historical data streams.
+     * 1.0 is the default speed, 0.1 is 10 times slower, 10.0 is 10 times faster.
+     * Zero or negative values will result in no data being received.
+     * Calling this method will reconnect to the data stream if it is already connected.
+     *
+     * @param replaySpeed the replay speed of the request.
+     */
+    public void setReplaySpeed(double replaySpeed) {
+        this.replaySpeed = replaySpeed;
+        reconnectIfConnected();
+    }
+}

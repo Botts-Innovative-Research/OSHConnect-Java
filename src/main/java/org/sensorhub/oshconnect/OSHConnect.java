@@ -2,42 +2,39 @@ package org.sensorhub.oshconnect;
 
 import org.sensorhub.oshconnect.config.ConfigManager;
 import org.sensorhub.oshconnect.config.ConfigManagerJson;
-import org.sensorhub.oshconnect.oshdatamodels.OSHDatastream;
-import org.sensorhub.oshconnect.oshdatamodels.OSHNode;
-import org.sensorhub.oshconnect.oshdatamodels.OSHSystem;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
-
-import lombok.Getter;
-import lombok.Setter;
+import java.util.concurrent.ExecutionException;
 
 /**
- * OSHConnect is the main class for connecting to OpenSensorHub servers and managing datastreams.
+ * OSHConnect is the main class for connecting to OpenSensorHub servers and managing data streams.
  */
-@Getter
 public class OSHConnect {
     /**
      * The name of the OSHConnect instance.
      */
     private final String name;
     /**
-     * The configuration manager, used to export and import configuration data.
-     */
-    @Setter
-    private ConfigManager configManager = new ConfigManagerJson(this);
-    /**
      * The node manager, used to create and manage connections to OpenSensorHub servers.
      */
     private final NodeManager nodeManager;
     /**
-     * The datastream manager, used to create and manage connections to datastreams.
+     * The data stream manager, used to create and manage connections to data streams.
      */
-    private final DatastreamManager datastreamManager;
+    private final StreamManager dataStreamManager;
     /**
-     * The notification manager, used to notify listeners of changes to nodes, systems, and datastreams.
+     * The control stream manager, used to create and manage connections to control streams.
+     */
+    private final StreamManager controlStreamManager;
+    /**
+     * The notification manager, used to notify listeners of changes to nodes, systems, and data streams.
      */
     private final NotificationManager notificationManager;
+    /**
+     * The configuration manager, used to export and import configuration data.
+     */
+    private ConfigManager configManager = new ConfigManagerJson(this);
 
     /**
      * Create a new OSHConnect instance.
@@ -53,7 +50,8 @@ public class OSHConnect {
      */
     public OSHConnect(String name) {
         this.name = name;
-        this.datastreamManager = new DatastreamManager();
+        this.dataStreamManager = new StreamManager();
+        this.controlStreamManager = new StreamManager();
         this.notificationManager = new NotificationManager();
         this.nodeManager = new NodeManager(notificationManager);
     }
@@ -64,7 +62,7 @@ public class OSHConnect {
      * If another node with the root URL already exists,
      * the existing node will be returned.
      *
-     * @param sensorHubRoot The root URL of the OpenSensorHub server, e.g. localhost:8181/sensorhub.
+     * @param sensorHubRoot The root URL of the OpenSensorHub server, e.g., localhost:8181/sensorhub.
      * @param isSecure      Flag indicating if the server is secured through TLS/SSL.
      * @param username      The username for the server, if authentication is required.
      * @param password      The password for the server, if authentication is required.
@@ -79,26 +77,52 @@ public class OSHConnect {
     }
 
     /**
-     * Discover systems belonging to all OpenSensorHub nodes previously added to OSHConnect.
+     * Query all nodes for their systems.
      *
      * @return A list of all systems discovered by OSHConnect.
      */
-    public List<OSHSystem> discoverSystems() {
-        nodeManager.getNodes().forEach(OSHNode::discoverSystems);
-        return getSystems();
+    public List<OSHSystem> discoverSystems() throws ExecutionException, InterruptedException {
+        List<OSHSystem> result = new ArrayList<>();
+        for (OSHNode node : nodeManager.getNodes()) {
+            result.addAll(node.discoverSystems());
+        }
+        return result;
     }
 
     /**
-     * Discover datastreams belonging to all systems previously discovered by OSHConnect.
+     * Query all nodes for their data streams for all systems previously discovered by OSHConnect.
      * This method should be called after discoverSystems().
-     * Note: This method may take a long time to complete if there are many systems and datastreams to discover;
-     * it is recommended to call OSHSystem.discoverDataStreams() on individual systems containing the datastreams of interest.
+     * Note: This method may take a long time to complete if there are many systems and data streams to discover;
+     * it is recommended to call {@link OSHSystem#discoverDataStreams()} on individual systems containing the data streams of interest.
      *
-     * @return A list of all datastreams discovered by OSHConnect.
+     * @return A list of all data streams discovered by OSHConnect.
      */
-    public List<OSHDatastream> discoverDatastreams() {
-        nodeManager.getNodes().forEach(OSHNode::discoverDatastreams);
-        return getDatastreams();
+    public List<OSHDataStream> discoverDataStreams() throws ExecutionException, InterruptedException {
+        List<OSHDataStream> result = new ArrayList<>();
+        for (OSHNode node : nodeManager.getNodes()) {
+            for (OSHSystem system : node.getSystems()) {
+                result.addAll(system.discoverDataStreams());
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Query all nodes for their control streams for all systems previously discovered by OSHConnect.
+     * This method should be called after discoverSystems().
+     * Note: This method may take a long time to complete if there are many systems and control streams to discover;
+     * it is recommended to call {@link OSHSystem#discoverControlStreams()} on individual systems containing the control streams of interest.
+     *
+     * @return A list of all control streams discovered by OSHConnect.
+     */
+    public List<OSHControlStream> discoverControlStreams() throws ExecutionException, InterruptedException {
+        List<OSHControlStream> result = new ArrayList<>();
+        for (OSHNode node : nodeManager.getNodes()) {
+            for (OSHSystem system : node.getSystems()) {
+                result.addAll(system.discoverControlStreams());
+            }
+        }
+        return result;
     }
 
     /**
@@ -107,28 +131,96 @@ public class OSHConnect {
      * @return The list of systems.
      */
     public List<OSHSystem> getSystems() {
-        return nodeManager.getNodes().stream()
-                .flatMap(node -> node.getSystems().stream())
-                .collect(Collectors.toList());
+        List<OSHSystem> result = new ArrayList<>();
+        for (OSHNode node : nodeManager.getNodes()) {
+            result.addAll(node.getSystems());
+        }
+        return result;
     }
 
     /**
-     * Get a list of all datastreams discovered by OSHConnect.
+     * Get a list of all data streams discovered by OSHConnect.
      *
-     * @return The list of datastreams.
+     * @return The list of data streams.
      */
-    public List<OSHDatastream> getDatastreams() {
-        return nodeManager.getNodes().stream()
-                .flatMap(node -> node.getDatastreams().stream())
-                .collect(Collectors.toList());
+    public List<OSHDataStream> getDataStreams() {
+        List<OSHDataStream> result = new ArrayList<>();
+        for (OSHNode node : nodeManager.getNodes()) {
+            result.addAll(node.getDataStreams());
+        }
+        return result;
     }
 
     /**
-     * Shutdown all datastreams and remove all nodes.
+     * Get a list of all control streams discovered by OSHConnect.
+     *
+     * @return The list of control streams.
+     */
+    public List<OSHControlStream> getControlStreams() {
+        List<OSHControlStream> result = new ArrayList<>();
+        for (OSHNode node : nodeManager.getNodes()) {
+            result.addAll(node.getControlStreams());
+        }
+        return result;
+    }
+
+    /**
+     * Shutdown all data streams and remove all nodes.
      */
     public void shutdown() {
-        datastreamManager.shutdown();
+        dataStreamManager.shutdown();
         nodeManager.shutdown();
         notificationManager.shutdown();
+    }
+
+    /**
+     * The name of the OSHConnect instance.
+     */
+    public String getName() {
+        return name;
+    }
+
+    /**
+     * The node manager, used to create and manage connections to OpenSensorHub servers.
+     */
+    public NodeManager getNodeManager() {
+        return nodeManager;
+    }
+
+    /**
+     * The data stream manager, used to create and manage connections to data streams.
+     */
+    public StreamManager getDataStreamManager() {
+        return dataStreamManager;
+    }
+
+    /**
+     * The control stream manager, used to create and manage connections to control streams.
+     */
+    public StreamManager getControlStreamManager() {
+        return controlStreamManager;
+    }
+
+    /**
+     * The notification manager, used to notify listeners of changes to nodes, systems, and data streams.
+     */
+    public NotificationManager getNotificationManager() {
+        return notificationManager;
+    }
+
+    /**
+     * The configuration manager, used to export and import configuration data.
+     */
+    public ConfigManager getConfigManager() {
+        return configManager;
+    }
+
+    /**
+     * The configuration manager, used to export and import configuration data.
+     * Note: The default configuration manager is {@link ConfigManagerJson}.
+     * This method allows the user to set a custom configuration manager.
+     */
+    public void setConfigManager(ConfigManager configManager) {
+        this.configManager = configManager;
     }
 }

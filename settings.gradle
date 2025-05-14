@@ -1,2 +1,8 @@
 rootProject.name = 'OSHConnect-Java'
+def includeDir = "$rootDir/submodules"
 
+var oshCoreDir = "$includeDir/osh-core"
+
+gradle.ext.oshCoreDir = "$oshCoreDir"
+
+includeBuild "$oshCoreDir"

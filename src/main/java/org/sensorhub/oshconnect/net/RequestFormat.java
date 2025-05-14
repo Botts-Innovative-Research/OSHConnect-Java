@@ -1,11 +1,8 @@
 package org.sensorhub.oshconnect.net;
 
-import lombok.Getter;
-
 /**
  * Enum representing the format of the request.
  */
-@Getter
 public enum RequestFormat {
     JSON("application/json"),
     OM_JSON("application/om%2Bjson"),
@@ -22,5 +19,12 @@ public enum RequestFormat {
 
     RequestFormat(String mimeType) {
         this.mimeType = mimeType;
+    }
+
+    /**
+     * String representation of the format.
+     */
+    public String getMimeType() {
+        return mimeType;
     }
 }

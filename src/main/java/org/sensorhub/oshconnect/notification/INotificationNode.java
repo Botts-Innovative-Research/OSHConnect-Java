@@ -1,6 +1,6 @@
 package org.sensorhub.oshconnect.notification;
 
-import org.sensorhub.oshconnect.oshdatamodels.OSHNode;
+import org.sensorhub.oshconnect.OSHNode;
 
 public interface INotificationNode extends INotificationItem<OSHNode> {
     @Override

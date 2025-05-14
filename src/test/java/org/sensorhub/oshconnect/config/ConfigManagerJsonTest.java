@@ -1,24 +1,20 @@
 package org.sensorhub.oshconnect.config;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.fail;
-import static org.sensorhub.oshconnect.TestConstants.IS_SECURE;
-import static org.sensorhub.oshconnect.TestConstants.OSH_CONNECT_NAME;
-import static org.sensorhub.oshconnect.TestConstants.PASSWORD;
-import static org.sensorhub.oshconnect.TestConstants.SENSOR_HUB_ROOT;
-import static org.sensorhub.oshconnect.TestConstants.USERNAME;
-
 import org.json.JSONArray;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.sensorhub.oshconnect.NodeManager;
 import org.sensorhub.oshconnect.OSHConnect;
-import org.sensorhub.oshconnect.oshdatamodels.OSHNode;
+import org.sensorhub.oshconnect.OSHNode;
 
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.sensorhub.oshconnect.TestConstants.*;
 
 class ConfigManagerJsonTest {
     private OSHConnect oshConnect;
