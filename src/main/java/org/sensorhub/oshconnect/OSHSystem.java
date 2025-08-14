@@ -73,7 +73,7 @@ public class OSHSystem {
         List<OSHDataStream> result = new ArrayList<>();
 
         for (var id : dataStreamIds) {
-            var dataStreamResource = getConnectedSystemsApiClient().getDatastreamById(id, ResourceFormat.OM_JSON, true).get();
+            var dataStreamResource = getConnectedSystemsApiClient().getDatastreamById(id, ResourceFormat.JSON, true).get();
             var dataStream = addOrUpdateDataStream(id, dataStreamResource);
             if (dataStream != null) {
                 result.add(dataStream);
