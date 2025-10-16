@@ -386,7 +386,7 @@ public class ConSysApiClientExtras {
     public CompletableFuture<String> pushCommand(String controlStreamId, ICommandStreamInfo commandStreamInfo, CommandData command) {
         try {
             CommandHandler.CommandHandlerContextData contextData = new CommandHandler.CommandHandlerContextData();
-            contextData.dsInfo = commandStreamInfo;
+            contextData.csInfo = commandStreamInfo;
 
             var buffer = new ByteArrayOutputStream();
             var ctx = new RequestContext(buffer);
@@ -417,7 +417,7 @@ public class ConSysApiClientExtras {
         return sendGetRequest(endpoint.resolve(CONTROLS_COLLECTION + "/" + controlStreamId + "/" + COMMANDS_COLLECTION + "/" + commandId), ResourceFormat.OM_JSON, body -> {
             try {
                 CommandHandler.CommandHandlerContextData contextData = new CommandHandler.CommandHandlerContextData();
-                contextData.dsInfo = commandStreamInfo;
+                contextData.csInfo = commandStreamInfo;
 
                 var ctx = new RequestContext(body);
                 ctx.setData(contextData);
@@ -460,7 +460,7 @@ public class ConSysApiClientExtras {
         return sendGetRequest(endpoint.resolve(url), ResourceFormat.JSON, body -> {
             try {
                 CommandHandler.CommandHandlerContextData contextData = new CommandHandler.CommandHandlerContextData();
-                contextData.dsInfo = commandStreamInfo;
+                contextData.csInfo = commandStreamInfo;
 
                 var ctx = new RequestContext(body);
                 JsonObject bodyJson = JsonParser.parseReader(new InputStreamReader(ctx.getInputStream())).getAsJsonObject();

@@ -59,16 +59,16 @@ public class CommandBindingJson extends ResourceBindingJson<String, CommandData>
         this.contextData = (CommandHandlerContextData) ctx.getData();
 
         if (forReading) {
-            this.paramsReader = getSweCommonParser(contextData.dsInfo, reader);
+            this.paramsReader = getSweCommonParser(contextData.csInfo, reader);
             this.userID = "api";
-            timeStampIndexer = SWEDataUtils.getTimeStampIndexer(contextData.dsInfo.getRecordStructure());
+            timeStampIndexer = SWEDataUtils.getTimeStampIndexer(contextData.csInfo.getRecordStructure());
         } else {
             this.paramsWriters = new HashMap<>();
 
             // init params writer only in case of single command stream
             // otherwise we'll do it later
-            if (contextData.dsInfo != null) {
-                var resultWriter = getSweCommonWriter(contextData.dsInfo, writer, ctx.getPropertyFilter());
+            if (contextData.csInfo != null) {
+                var resultWriter = getSweCommonWriter(contextData.csInfo, writer, ctx.getPropertyFilter());
                 paramsWriters.put(ctx.getParentID(), resultWriter);
             }
         }
@@ -151,7 +151,7 @@ public class CommandBindingJson extends ResourceBindingJson<String, CommandData>
         // create or reuse existing params writer and write param data
         // TODO: Should be parameters
         writer.name("params");
-        var paramWriter = getSweCommonWriter(contextData.dsInfo, writer, ctx.getPropertyFilter());
+        var paramWriter = getSweCommonWriter(contextData.csInfo, writer, ctx.getPropertyFilter());
 
         // write if JSON is supported, otherwise print warning message
         if (paramWriter instanceof JsonDataWriterGson)
