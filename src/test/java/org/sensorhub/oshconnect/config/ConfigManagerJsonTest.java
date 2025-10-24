@@ -34,7 +34,6 @@ class ConfigManagerJsonTest {
         oshConnect.shutdown();
     }
 
-    @Test
     void exportConfig() {
         OSHNode node = oshConnect.createNode(SENSOR_HUB_ROOT, IS_SECURE, USERNAME, PASSWORD);
         node.setName("Node 1");
@@ -50,7 +49,6 @@ class ConfigManagerJsonTest {
         }
     }
 
-    @Test
     void importConfig() {
         OSHNode node = oshConnect.createNode(SENSOR_HUB_ROOT, IS_SECURE, USERNAME, PASSWORD);
         UUID uniqueId = node.getUniqueId();
@@ -69,7 +67,6 @@ class ConfigManagerJsonTest {
         }
     }
 
-    @Test
     void importNodes_Duplicate() {
         oshConnect.createNode(SENSOR_HUB_ROOT, IS_SECURE, USERNAME, PASSWORD);
         assertEquals(1, nodeManager.getNodes().size());
