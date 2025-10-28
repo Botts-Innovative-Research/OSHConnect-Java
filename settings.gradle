@@ -6,3 +6,6 @@ var oshCoreDir = "$includeDir/osh-core"
 gradle.ext.oshCoreDir = "$oshCoreDir"
 
 includeBuild "$oshCoreDir"
+
+include(":sensorhub-driver-ffmpeg")
+project(":sensorhub-driver-ffmpeg").projectDir = file("submodules/osh-addons/sensors/video/sensorhub-driver-ffmpeg")

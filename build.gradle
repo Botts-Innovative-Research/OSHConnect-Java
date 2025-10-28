@@ -31,6 +31,17 @@ dependencies {
     testImplementation platform('org.junit:junit-bom:5.10.0')
     testImplementation 'org.junit.jupiter:junit-jupiter-api'
     testImplementation 'org.awaitility:awaitility:4.2.2'
+
+
+    testImplementation 'org.sensorhub:sensorhub-core:' + oshCoreVersion
+    testImplementation 'org.sensorhub:sensorhub-core-osgi:' + oshCoreVersion
+    testImplementation 'org.sensorhub:sensorhub-datastore-h2:' + oshCoreVersion
+    testImplementation 'org.sensorhub:sensorhub-service-swe:' + oshCoreVersion
+    testImplementation 'org.sensorhub:sensorhub-webui-core:' + oshCoreVersion
+    testImplementation 'org.sensorhub:sensorhub-service-consys:' + oshCoreVersion
+
+    testImplementation project(':sensorhub-driver-ffmpeg')
+
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
 }
 
