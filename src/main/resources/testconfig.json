@@ -233,9 +233,9 @@
     "serialNumber": "video001",
     "connection": {
       "objClass": "org.sensorhub.impl.sensor.ffmpeg.config.Connection",
-      "connectionString": "file:///home/mikeuluswork/Videos/test1.mkv",
-      "fps": 0,
-      "loop": false,
+      "connectionString": "/home/mikeuluswork/Videos/Jellyfish_360_10s_1MB.mkv",
+      "fps": 24,
+      "loop": true,
       "injectExtradata": true
     },
     "positionConfig": {
