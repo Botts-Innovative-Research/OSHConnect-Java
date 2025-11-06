@@ -65,9 +65,5 @@ jar {
 
 test {
     useJUnitPlatform()
-    testLogging {
-        events "passed", "skipped", "failed"
-        showStandardStreams = true  // this prints System.out/err even on passes
-        outputs.upToDateWhen { false }
-    }
+    forkEvery = 1
 }
