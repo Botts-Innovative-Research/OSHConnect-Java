@@ -15,10 +15,7 @@ import org.sensorhub.oshconnect.util.ControlStreamsQueryBuilder;
 import org.sensorhub.oshconnect.util.DataStreamsQueryBuilder;
 import org.sensorhub.oshconnect.util.Utilities;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -73,7 +70,25 @@ public class OSHSystem {
         List<OSHDataStream> result = new ArrayList<>();
 
         for (var id : dataStreamIds) {
-            var dataStreamResource = getConnectedSystemsApiClient().getDatastreamById(id, ResourceFormat.JSON, false).get();
+            IDataStreamInfo dataStreamResource = null;
+
+            try {
+                dataStreamResource = getConnectedSystemsApiClient().getDatastreamById(id, ResourceFormat.JSON, true).get();
+            } catch ( Exception e ) {
+
+                //in some cases fetching the schema from a live node doesn't work because ConSysApiClient defaults to swe+json
+                //for the request which may not be available
+                if (e.getCause() instanceof java.util.concurrent.CompletionException) {
+                    if (e.getCause().getMessage().contains("Unsupported format")) {
+                        dataStreamResource = getConnectedSystemsApiClient().getDatastreamById(id, ResourceFormat.JSON, false).get();
+                    } else {
+                        throw new RuntimeException(e);
+                    }
+                } else {
+                    throw new RuntimeException(e);
+                }
+            }
+
             var dataStream = addOrUpdateDataStream(id, dataStreamResource);
             if (dataStream != null) {
                 result.add(dataStream);
@@ -216,7 +231,7 @@ public class OSHSystem {
         String id = getConnectedSystemsApiClient().addDataStream(getId(), dataStreamResource).get();
         if (id == null) return null;
 
-        var newDataStreamResource = getConnectedSystemsApiClient().getDatastreamById(id, ResourceFormat.JSON, true).get();
+        var newDataStreamResource = getConnectedSystemsApiClient().getDatastreamById(id, ResourceFormat.OM_JSON, true).get();
         if (newDataStreamResource == null) return null;
 
         OSHDataStream dataStream = new OSHDataStream(this, id, newDataStreamResource);

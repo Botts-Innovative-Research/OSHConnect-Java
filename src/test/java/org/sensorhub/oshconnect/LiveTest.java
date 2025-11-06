@@ -178,6 +178,7 @@ public class LiveTest {
                     })
                     .exceptionally(ex -> {
                         System.out.println("OSHSystemID Exception thrown: " + ex.getMessage());
+                        assertEquals(false, true);
                         return null;
                     })
                     .join();
