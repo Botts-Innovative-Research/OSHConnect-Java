@@ -9,3 +9,6 @@ includeBuild "$oshCoreDir"
 
 include(":sensorhub-driver-ffmpeg")
 project(":sensorhub-driver-ffmpeg").projectDir = file("submodules/osh-addons/sensors/video/sensorhub-driver-ffmpeg")
+
+include(":sensorhub-driver-fakegps")
+project(":sensorhub-driver-fakegps").projectDir = file("submodules/osh-addons/sensors/simulated/sensorhub-driver-fakegps")

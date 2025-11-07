@@ -2,44 +2,119 @@ package org.sensorhub.oshconnect;
 
 import net.opengis.swe.v20.*;
 import org.json.JSONException;
+import org.json.JSONObject;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import org.sensorhub.impl.SensorHub;
 import org.sensorhub.oshconnect.net.RequestFormat;
 import org.sensorhub.oshconnect.net.websocket.StreamHandler;
+import org.sensorhub.oshconnect.util.SystemsQueryBuilder;
 
 import java.lang.Thread;
 import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 
 public class LiveTest {
 
     private OSHNode node = null;
 
-    final private AtomicInteger testNumFrames = new AtomicInteger(20);
+    final private AtomicInteger testNumFrames = new AtomicInteger(5);
+
+    final private AtomicInteger testNumGpsCoordinates = new AtomicInteger(2);
+
     final private AtomicBoolean failed = new AtomicBoolean(false);
+
+    private OSHConnect oshConnect = null;
+
+    private enum SystemType {
+        FRAME, GPS
+    }
+
+    private Thread thread = null;
 
     @BeforeEach
     void createNode() {
 
-//        var oshConnect = new OSHConnect();
-//
-//        boolean isSecure = true;
-//        String lUrl = "https://osh-dev.botts-inc.com:8443/sensorhub";
-//        node = oshConnect.createNode(lUrl, isSecure, "anonymous", "anonymous");
+        try {
+            thread = new Thread(() -> {
+                System.out.println("Starting OSH");
+
+                SensorHub.main(new String[] {"src/main/resources/testconfig.json",
+                        "storage"});
+
+                while ( true ) {
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt(); // restore flag
+                        return;
+                    }
+                }
+            });
+
+            thread.start();
+
+            Thread.sleep(2000);
+            oshConnect = new OSHConnect();
+            boolean isSecure = false;
+            String lUrl = "http://127.0.0.1:8181/sensorhub";
+            node = oshConnect.createNode(lUrl, isSecure, "anonymous", "anonymous");
+
+            //mstinson:testing - this is only for adding configurations
+//            thread.join();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 
-    void update( byte[] data ) {
+    @AfterEach
+    void removeNode() {
+        oshConnect.shutdown();
+    }
+
+
+    void validateGpsData( byte[] data  ) {
+
+        var dataObject = new JSONObject(new String(data));
+        assertFalse(dataObject.isEmpty());
+
+        var result = dataObject.optJSONObject("result");
+        assertFalse(result.isEmpty());
+
+        var location = result.optJSONObject("location");
+        assertFalse(location.isEmpty());
+
+        var alt = location.getFloat("alt");
+        var altDelta = Math.abs(193.0 - alt);
+        assertFalse( altDelta > 0.0001 );
+
+        var lat = location.getFloat("lat");
+        var latDelta = Math.abs(34.73 - lat);
+        assertFalse( latDelta > 0.1);
+
+        var lon = location.getFloat("lon");
+        var lonDelta = Math.abs(-86.60 - lon);
+        assertFalse( lonDelta > 0.1);
+
+        testNumGpsCoordinates.set(testNumGpsCoordinates.get() - 1);
+
+        System.out.println("Gps Data: Lat: " + lat + " Lon: " + lon + "\n");
+    }
+
+    void validateFrame( byte[] data ) {
 
         byte[] resultBytes;
 
@@ -88,107 +163,100 @@ public class LiveTest {
     }
 
     @Test
-    void TestAgainstLiveNode() {
+    void TestVideoFrame() {
+        String systemId = "036o58vcplkg"; //ffmpeg driver system id
 
+        TestSystem(systemId, SystemType.FRAME, testNumFrames);
+    }
 
-        try {
-            Thread thread = new Thread(() -> {
-                System.out.println("Starting OSH");
+    @Test
+    void TestGps() {
+        String systemId = "03uq775pjdog"; //ffmpeg driver system id
 
-                SensorHub.main(new String[] {"src/main/resources/testconfig.json",
-                        "storage"});
+        TestSystem(systemId, SystemType.GPS, testNumGpsCoordinates);
+    }
 
-                while ( true ) {
+    private void TestSystem( String systemId, SystemType systemType, AtomicInteger sampleCount ) {
+        assert null != oshConnect;
+
+        CompletableFuture
+                .supplyAsync(() -> {
                     try {
-                        Thread.sleep(100);
-                    } catch (InterruptedException e) {
+
+                        var ids = new ArrayList<String>();
+                        ids.add(systemId);
+                        var query = new SystemsQueryBuilder().id(ids);
+
+                        return node != null ? node.discoverSystems(query) : null;
+                    } catch ( ExecutionException | InterruptedException e) {
                         throw new RuntimeException(e);
                     }
-                }
-            });
+                })
+                .thenAccept(systemsResult -> {
+                    if (systemsResult == null || systemsResult.isEmpty()) return;
 
-            thread.start();
+                    var dataStreamManager = oshConnect.getDataStreamManager();
+                    StreamHandler streamHandler = dataStreamManager.createDataStreamHandler(( args ) -> {
 
-            Thread.sleep(2000);
-            var oshConnect = new OSHConnect();
-            boolean isSecure = false;
-            String lUrl = "http://127.0.0.1:8181/sensorhub";
-            node = oshConnect.createNode(lUrl, isSecure, "anonymous", "anonymous");
+                        switch (systemType) {
+                            case FRAME -> validateFrame(args.getData());
+                            case GPS -> validateGpsData(args.getData());
+                        }
+                    });
 
+                    switch (systemType) {
+                        case FRAME -> streamHandler.setRequestFormat(RequestFormat.SWE_BINARY);
+                        case GPS -> streamHandler.setRequestFormat(RequestFormat.OM_JSON);
+                    }
 
+                    OSHSystem cSystem = systemsResult.get(0);
+                    assert cSystem.getId().equals(systemId);
 
-            CompletableFuture
-                    .supplyAsync(() -> {
+                    System.out.println("OSHSystemID OpenSensorHub System Found. ID: " + cSystem.getId());
+
+                    try {
+                        var dataStreams = cSystem.discoverDataStreams();
+
+                        var aDs = dataStreams.get(0);
+
+                        assert aDs != null;
+                        streamHandler.addDataStreamListener(aDs);
+
+                    } catch (ExecutionException | InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+
+                    streamHandler.connect();
+
+                    while (sampleCount.get() > 0 && !failed.get()) {
                         try {
-                            return node != null ? node.discoverSystems() : null;
-                        } catch ( ExecutionException | InterruptedException e) {
-                            throw new RuntimeException(e);
-                        }
-                    })
-                    .thenAccept(systemsResult -> {
-                        if (systemsResult == null) return;
+                            Thread.sleep(50);
+                        } catch (InterruptedException ignored) {}
+                    }
 
-                        var dataStreamManager = oshConnect.getDataStreamManager();
-                        StreamHandler streamHandler = dataStreamManager.createDataStreamHandler(( args ) -> {
-                            update(args.getData());
-                        });
+                    streamHandler.shutdown();
 
-                        streamHandler.setRequestFormat(RequestFormat.SWE_BINARY);
+                    if ( thread.isAlive()) {
+                        thread.interrupt();
+                    }
 
-                        for (OSHSystem cSystem : systemsResult) {
-                            System.out.println("OSHSystemID OpenSensorHub System Found. ID: " + cSystem.getId());
+                    if ( failed.get() ) {
+                        System.out.println("Test FAILED\n");
+                    } else {
+                        System.out.println("Test PASSED\n");
+                    }
 
-                            try {
-                                var dataStreams = cSystem.discoverDataStreams();
-
-                                var a = dataStreams.get(0);
-                                for ( var ds : dataStreams ) {
-
-                                    //start mstinson:testing
-                                    //var observations = ds.getObservations();
-                                    //end mstinson:testing
-
-                                    streamHandler.addDataStreamListener(ds);
-                                }
-
-                            } catch (ExecutionException e) {
-                                throw new RuntimeException(e);
-                            } catch (InterruptedException e) {
-                                throw new RuntimeException(e);
-                            }
-                        }
-
-                        streamHandler.connect();
-
-                        while (testNumFrames.get() >= 0 && !failed.get()) {
-                            try {
-                                Thread.sleep(50); // small polling interval
-                            } catch (InterruptedException ignored) {}
-                        }
-
-                        streamHandler.shutdown();
-
-                        if ( failed.get() ) {
-                            System.out.println("Test FAILED\n");
-                        } else {
-                            System.out.println("Test PASSED\n");
-                        }
-
-                        assertEquals(failed.get(), false);
-                    })
-                    .exceptionally(ex -> {
-                        System.out.println("OSHSystemID Exception thrown: " + ex.getMessage());
-                        assertEquals(false, true);
-                        return null;
-                    })
-                    .join();
-
-            oshConnect.shutdown();
-
-            //thread.join();
-
-        } catch (InterruptedException e ) {
-            throw new RuntimeException(e);
-        }
+                    assertEquals(failed.get(), false);
+                })
+                .exceptionally(ex -> {
+                    System.out.println("OSHSystemID Exception thrown: " + ex.getMessage());
+                    assert false;
+                    return null;
+                })
+                .join();
     }
+
+
+
+
 }

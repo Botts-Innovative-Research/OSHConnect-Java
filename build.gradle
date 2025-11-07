@@ -41,6 +41,8 @@ dependencies {
     testImplementation 'org.sensorhub:sensorhub-service-consys:' + oshCoreVersion
 
     testImplementation project(':sensorhub-driver-ffmpeg')
+    testImplementation project(':sensorhub-driver-fakegps')
+
 
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
 }
@@ -66,4 +68,10 @@ jar {
 test {
     useJUnitPlatform()
     forkEvery = 1
+}
+
+project(':sensorhub-driver-fakegps') {
+    tasks.named('test') {
+        enabled = false
+    }
 }
