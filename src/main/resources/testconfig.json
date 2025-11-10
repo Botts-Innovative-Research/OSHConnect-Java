@@ -264,5 +264,20 @@
     "autoStart": true,
     "moduleClass": "org.sensorhub.impl.sensor.fakegps.FakeGpsSensor",
     "name": "New Simulated GPS Sensor"
+  },
+  {
+    "objClass": "org.sensorhub.impl.sensor.fakeweather.FakeWeatherConfig",
+    "serialNumber": "0123456879",
+    "location": {
+      "objClass": "org.sensorhub.api.sensor.PositionConfig$LLALocation",
+      "lat": 34.8038,
+      "lon": -86.7228,
+      "alt": 0.0
+    },
+    "lastUpdated": "2025-11-10T12:35:33.187-0600",
+    "id": "9e2849b2-16a1-4f59-817c-590d13845869",
+    "autoStart": true,
+    "moduleClass": "org.sensorhub.impl.sensor.fakeweather.FakeWeatherSensor",
+    "name": "New Simulated Weather Sensor"
   }
 ]

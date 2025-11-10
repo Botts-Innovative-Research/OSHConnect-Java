@@ -42,6 +42,7 @@ dependencies {
 
     testImplementation project(':sensorhub-driver-ffmpeg')
     testImplementation project(':sensorhub-driver-fakegps')
+    testImplementation project(':sensorhub-driver-fakeweather')
 
 
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
@@ -68,6 +69,7 @@ jar {
 test {
     useJUnitPlatform()
     forkEvery = 1
+    maxParallelForks = 1
 }
 
 project(':sensorhub-driver-fakegps') {
@@ -75,3 +77,11 @@ project(':sensorhub-driver-fakegps') {
         enabled = false
     }
 }
+
+
+project(':sensorhub-driver-fakeweather') {
+    tasks.named('test') {
+        enabled = false
+    }
+}
+

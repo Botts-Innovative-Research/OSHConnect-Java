@@ -34,13 +34,14 @@ public class LiveTest {
     final private AtomicInteger testNumFrames = new AtomicInteger(5);
 
     final private AtomicInteger testNumGpsCoordinates = new AtomicInteger(2);
+    final private AtomicInteger testNumWeatherCoordinates = new AtomicInteger(2);
 
     final private AtomicBoolean failed = new AtomicBoolean(false);
 
     private OSHConnect oshConnect = null;
 
     private enum SystemType {
-        FRAME, GPS
+        FRAME, GPS, WEATHER
     }
 
     private Thread thread = null;
@@ -73,7 +74,7 @@ public class LiveTest {
             String lUrl = "http://127.0.0.1:8181/sensorhub";
             node = oshConnect.createNode(lUrl, isSecure, "anonymous", "anonymous");
 
-            //mstinson:testing - this is only for adding configurations
+            //mstinson:testing - this is for adding configurations
 //            thread.join();
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
@@ -85,6 +86,26 @@ public class LiveTest {
         oshConnect.shutdown();
     }
 
+    void validateWeatherData( byte[] data ) {
+        var dataObject = new JSONObject(new String(data));
+        assertFalse(dataObject.isEmpty());
+
+        var result = dataObject.optJSONObject("result");
+        assertFalse(result.isEmpty());
+
+        var temperature = result.getFloat("temperature");
+        assertFalse( temperature < 0.0 );
+
+        var pressure = result.getFloat("pressure");
+        assertFalse( pressure < 0.0 );
+
+        var windDirection = result.getFloat("windDirection");
+        assertFalse( windDirection < 0.0 );
+
+        var windSpeed = result.getFloat("windSpeed");
+        assertFalse( windSpeed < 0.0 );
+
+    }
 
     void validateGpsData( byte[] data  ) {
 
@@ -108,8 +129,6 @@ public class LiveTest {
         var lon = location.getFloat("lon");
         var lonDelta = Math.abs(-86.60 - lon);
         assertFalse( lonDelta > 0.1);
-
-        testNumGpsCoordinates.set(testNumGpsCoordinates.get() - 1);
 
         System.out.println("Gps Data: Lat: " + lat + " Lon: " + lon + "\n");
     }
@@ -152,8 +171,6 @@ public class LiveTest {
                 failed.set(true);
             }
 
-            testNumFrames.set(testNumFrames.get()-1);
-
             System.out.println("CLIENT Timestamp: " + instant.toString() + " CLIENT Framesize: " + frameSize + "\n");
         } catch (JSONException e) {
             throw new RuntimeException(e);
@@ -174,6 +191,13 @@ public class LiveTest {
         String systemId = "03uq775pjdog"; //ffmpeg driver system id
 
         TestSystem(systemId, SystemType.GPS, testNumGpsCoordinates);
+    }
+
+    @Test
+    void TestWeather() {
+        String systemId = "03ie1mkrr9r0"; //weather driver system id
+
+        TestSystem(systemId, SystemType.WEATHER, testNumWeatherCoordinates);
     }
 
     private void TestSystem( String systemId, SystemType systemType, AtomicInteger sampleCount ) {
@@ -198,15 +222,23 @@ public class LiveTest {
                     var dataStreamManager = oshConnect.getDataStreamManager();
                     StreamHandler streamHandler = dataStreamManager.createDataStreamHandler(( args ) -> {
 
-                        switch (systemType) {
-                            case FRAME -> validateFrame(args.getData());
-                            case GPS -> validateGpsData(args.getData());
+                        if ( sampleCount.get() > 0 ) {
+
+                            switch (systemType) {
+                                case FRAME -> validateFrame(args.getData());
+                                case GPS -> validateGpsData(args.getData());
+                                case WEATHER -> validateWeatherData(args.getData());
+                            }
+
+                            sampleCount.set(sampleCount.get()-1);
                         }
+
                     });
 
                     switch (systemType) {
                         case FRAME -> streamHandler.setRequestFormat(RequestFormat.SWE_BINARY);
                         case GPS -> streamHandler.setRequestFormat(RequestFormat.OM_JSON);
+                        case WEATHER -> streamHandler.setRequestFormat(RequestFormat.OM_JSON);
                     }
 
                     OSHSystem cSystem = systemsResult.get(0);
@@ -217,10 +249,10 @@ public class LiveTest {
                     try {
                         var dataStreams = cSystem.discoverDataStreams();
 
-                        var aDs = dataStreams.get(0);
-
-                        assert aDs != null;
-                        streamHandler.addDataStreamListener(aDs);
+                        for ( var dStream : dataStreams ) {
+                            assert dStream != null;
+                            streamHandler.addDataStreamListener(dStream);
+                        }
 
                     } catch (ExecutionException | InterruptedException e) {
                         throw new RuntimeException(e);

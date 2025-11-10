@@ -12,3 +12,6 @@ project(":sensorhub-driver-ffmpeg").projectDir = file("submodules/osh-addons/sen
 
 include(":sensorhub-driver-fakegps")
 project(":sensorhub-driver-fakegps").projectDir = file("submodules/osh-addons/sensors/simulated/sensorhub-driver-fakegps")
+
+include(":sensorhub-driver-fakeweather")
+project(":sensorhub-driver-fakeweather").projectDir = file("submodules/osh-addons/sensors/simulated/sensorhub-driver-fakeweather")
