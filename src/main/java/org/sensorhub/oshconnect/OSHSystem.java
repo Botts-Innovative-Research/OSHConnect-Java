@@ -73,14 +73,16 @@ public class OSHSystem {
             IDataStreamInfo dataStreamResource = null;
 
             try {
-                dataStreamResource = getConnectedSystemsApiClient().getDatastreamById(id, ResourceFormat.JSON, true).get();
+                dataStreamResource = getConnectedSystemsApiClient().getDatastreamById(id, ResourceFormat.OM_JSON, true).get();
             } catch ( Exception e ) {
 
                 //in some cases fetching the schema from a live node doesn't work because ConSysApiClient defaults to swe+json
                 //for the request which may not be available
-                if (e.getCause() instanceof java.util.concurrent.CompletionException) {
-                    if (e.getCause().getMessage().contains("Unsupported format")) {
-                        dataStreamResource = getConnectedSystemsApiClient().getDatastreamById(id, ResourceFormat.JSON, false).get();
+                if (e.getCause() instanceof java.util.concurrent.CompletionException || e.getCause() instanceof org.sensorhub.impl.service.consys.ResourceParseException) {
+                    if (e.getCause().getMessage().contains("Unsupported format") ||
+                        e.getCause().getMessage().contains("Invalid JSON" ) ||
+                        e.getCause().getMessage().contains("HTTP error 400") ) {
+                        dataStreamResource = getConnectedSystemsApiClient().getDatastreamById(id, ResourceFormat.OM_JSON, false).get();
                     } else {
                         throw new RuntimeException(e);
                     }

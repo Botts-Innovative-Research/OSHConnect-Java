@@ -283,7 +283,7 @@ public class OSHNode {
      * @param password the password.
      */
     public void setAuthorization(String username, String password) {
-        if (username != null && password != null && !username.isEmpty() && !password.isEmpty()) {
+        if ( username != null && password != null && !username.isEmpty() ) {
             authorizationToken = Base64.getEncoder().encodeToString((username + ":" + password).getBytes());
             this.username = username;
             this.password = password;
