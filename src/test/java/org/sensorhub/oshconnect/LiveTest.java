@@ -23,8 +23,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.*;
 
 
 public class LiveTest {
@@ -32,8 +31,7 @@ public class LiveTest {
     private OSHNode node = null;
 
     final private AtomicInteger testNumFrames = new AtomicInteger(5);
-
-    final private AtomicInteger testNumGpsCoordinates = new AtomicInteger(2);
+    final private AtomicInteger testNumGenericDataPoints = new AtomicInteger(2);
     final private AtomicInteger testNumWeatherCoordinates = new AtomicInteger(2);
 
     final private AtomicBoolean failed = new AtomicBoolean(false);
@@ -41,7 +39,7 @@ public class LiveTest {
     private OSHConnect oshConnect = null;
 
     private enum SystemType {
-        FRAME, GPS, WEATHER
+        FRAME, GENERIC, WEATHER
     }
 
     private Thread thread = null;
@@ -107,7 +105,7 @@ public class LiveTest {
 
     }
 
-    void validateGpsData( byte[] data  ) {
+    void validateGenericData( byte[] data  ) {
 
         var dataObject = new JSONObject(new String(data));
         assertFalse(dataObject.isEmpty());
@@ -115,22 +113,9 @@ public class LiveTest {
         var result = dataObject.optJSONObject("result");
         assertFalse(result.isEmpty());
 
-        var location = result.optJSONObject("location");
-        assertFalse(location.isEmpty());
-
-        var alt = location.getFloat("alt");
-        var altDelta = Math.abs(193.0 - alt);
-        assertFalse( altDelta > 0.0001 );
-
-        var lat = location.getFloat("lat");
-        var latDelta = Math.abs(34.73 - lat);
-        assertFalse( latDelta > 0.1);
-
-        var lon = location.getFloat("lon");
-        var lonDelta = Math.abs(-86.60 - lon);
-        assertFalse( lonDelta > 0.1);
-
-        System.out.println("Gps Data: Lat: " + lat + " Lon: " + lon + "\n");
+        var dataStr = result.getString("data");
+        assertFalse(dataStr.isEmpty());
+        assertEquals("d5507204-465d-40f3-a114-be85ea3fafcd", dataStr);
     }
 
     void validateFrame( byte[] data ) {
@@ -181,21 +166,21 @@ public class LiveTest {
 
     @Test
     void TestVideoFrame() {
-        String systemId = "036o58vcplkg"; //ffmpeg driver system id
+        String systemId = "urn:osh:sensor:ffmpeg:video001"; //ffmpeg driver system id
 
         TestSystem(systemId, SystemType.FRAME, testNumFrames);
     }
 
     @Test
-    void TestGps() {
-        String systemId = "03uq775pjdog"; //ffmpeg driver system id
+    void TestGeneric() {
+        String systemId = "urn:osh:template_driver:sensor001";
 
-        TestSystem(systemId, SystemType.GPS, testNumGpsCoordinates);
+        TestSystem(systemId, SystemType.GENERIC, testNumGenericDataPoints);
     }
 
     @Test
     void TestWeather() {
-        String systemId = "03ie1mkrr9r0"; //weather driver system id
+        String systemId = "urn:osh:sensor:simweather:0123456879"; //weather driver system id
 
         TestSystem(systemId, SystemType.WEATHER, testNumWeatherCoordinates);
     }
@@ -212,6 +197,7 @@ public class LiveTest {
                         var query = new SystemsQueryBuilder().id(ids);
 
                         return node != null ? node.discoverSystems(query) : null;
+                        //return node != null ? node.discoverSystems() : null;
                     } catch ( ExecutionException | InterruptedException e) {
                         throw new RuntimeException(e);
                     }
@@ -226,7 +212,7 @@ public class LiveTest {
 
                             switch (systemType) {
                                 case FRAME -> validateFrame(args.getData());
-                                case GPS -> validateGpsData(args.getData());
+                                case GENERIC -> validateGenericData(args.getData());
                                 case WEATHER -> validateWeatherData(args.getData());
                             }
 
@@ -237,12 +223,12 @@ public class LiveTest {
 
                     switch (systemType) {
                         case FRAME -> streamHandler.setRequestFormat(RequestFormat.SWE_BINARY);
-                        case GPS -> streamHandler.setRequestFormat(RequestFormat.OM_JSON);
+                        case GENERIC -> streamHandler.setRequestFormat(RequestFormat.OM_JSON);
                         case WEATHER -> streamHandler.setRequestFormat(RequestFormat.OM_JSON);
                     }
 
                     OSHSystem cSystem = systemsResult.get(0);
-                    assert cSystem.getId().equals(systemId);
+                    assert cSystem.getSystemResource().getUniqueIdentifier().equals(systemId);
 
                     System.out.println("OSHSystemID OpenSensorHub System Found. ID: " + cSystem.getId());
 

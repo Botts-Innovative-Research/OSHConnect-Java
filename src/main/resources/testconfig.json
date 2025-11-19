@@ -248,24 +248,6 @@
     "name": "New FFMPEG Video Driver"
   },
   {
-    "objClass": "org.sensorhub.impl.sensor.fakegps.FakeGpsConfig",
-    "googleApiUrl": "https://maps.googleapis.com/maps/api/directions/json",
-    "googleApiKey": "",
-    "centerLatitude": 34.73,
-    "centerLongitude": -86.585,
-    "areaSize": 0.1,
-    "minSpeed": 40.0,
-    "maxSpeed": 100.0,
-    "walkingMode": false,
-    "samplingPeriodSeconds": 1.0,
-    "apiRequestPeriodMinutes": 720,
-    "lastUpdated": "2025-11-06T11:31:44.458-0600",
-    "id": "bf9f6e2c-0cac-4fa1-9850-d698f4b2eb18",
-    "autoStart": true,
-    "moduleClass": "org.sensorhub.impl.sensor.fakegps.FakeGpsSensor",
-    "name": "New Simulated GPS Sensor"
-  },
-  {
     "objClass": "org.sensorhub.impl.sensor.fakeweather.FakeWeatherConfig",
     "serialNumber": "0123456879",
     "location": {
@@ -279,5 +261,14 @@
     "autoStart": true,
     "moduleClass": "org.sensorhub.impl.sensor.fakeweather.FakeWeatherSensor",
     "name": "New Simulated Weather Sensor"
+  },
+  {
+    "objClass": "com.sample.impl.sensor.drivername.Config",
+    "serialNumber": "sensor001",
+    "lastUpdated": "2025-11-19T16:11:00.756-0600",
+    "id": "bfd639f7-a3d3-4c3c-8ee5-1dde2a047ef5",
+    "autoStart": true,
+    "moduleClass": "com.sample.impl.sensor.drivername.Sensor",
+    "name": "Generic Sensor"
   }
 ]

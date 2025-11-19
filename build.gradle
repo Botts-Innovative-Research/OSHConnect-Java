@@ -41,7 +41,7 @@ dependencies {
     testImplementation 'org.sensorhub:sensorhub-service-consys:' + oshCoreVersion
 
     testImplementation project(':sensorhub-driver-ffmpeg')
-    testImplementation project(':sensorhub-driver-fakegps')
+    testImplementation project(':sensorhub-driver-template')
     testImplementation project(':sensorhub-driver-fakeweather')
 
 
@@ -72,7 +72,7 @@ test {
     maxParallelForks = 1
 }
 
-project(':sensorhub-driver-fakegps') {
+project(':sensorhub-driver-template') {
     tasks.named('test') {
         enabled = false
     }
