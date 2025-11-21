@@ -25,7 +25,19 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-
+/**
+ * This class starts a live OSH node with some precaptured simulated data, queries it
+ * through the OSHConnect-Java library, and validates some of the samples. Recommend
+ * we keep adding data types to this as time allows.
+ *
+ * The current validated data is:
+ * 5 frames of h.264 video stream pulled from an *.mp4 video
+ * 2 samples of generic custom data from a template driver
+ * 2 samples of simulated weather data
+ *
+ * The test should run without any modifications. If this test fails then something inside
+ * OSHConnect-Java has broken.
+ */
 public class LiveTest {
 
     private OSHNode node = null;
@@ -50,6 +62,9 @@ public class LiveTest {
         try {
             thread = new Thread(() -> {
                 System.out.println("Starting OSH");
+
+                String rootDir = System.getProperty("user.dir");
+                System.setProperty("osh.root", rootDir);
 
                 SensorHub.main(new String[] {"src/main/resources/testconfig.json",
                         "storage"});
